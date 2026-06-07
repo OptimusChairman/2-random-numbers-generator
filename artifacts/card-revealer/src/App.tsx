@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Sparkles } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 type Mode = "6" | "11";
 
@@ -99,6 +99,13 @@ function CardGame() {
   const revealedCount = cards.filter((c) => c.isFlipped).length;
   const isComplete = revealedCount === total && total > 0;
 
+  // Auto-reshuffle when every card has been flipped — infinite play
+  useEffect(() => {
+    if (!isComplete || !pickedThisTurn) return;
+    const t = setTimeout(() => handleRandomize(), 1500);
+    return () => clearTimeout(t);
+  }, [isComplete, pickedThisTurn, handleRandomize]);
+
   return (
     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 md:p-8 overflow-x-hidden">
       <div className="w-full max-w-4xl mx-auto space-y-8 flex flex-col items-center">
@@ -134,20 +141,12 @@ function CardGame() {
         {/* Status box + button */}
         <div className="flex flex-col items-center space-y-4">
           <div className={`px-8 py-3 rounded-full border-2 transition-all duration-500 font-bold text-lg
-            ${isComplete
-              ? "border-secondary bg-secondary/10 text-secondary scale-110 shadow-[0_0_20px_rgba(0,255,255,0.4)]"
-              : pickedThisTurn
+            ${pickedThisTurn
               ? "border-primary bg-primary/10 text-white shadow-[0_0_18px_rgba(255,80,220,0.45)]"
               : "border-muted-foreground/30 bg-card text-white/70"
             }`}
           >
-            {isComplete ? (
-              <span className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5" />
-                All Revealed!
-                <Sparkles className="w-5 h-5" />
-              </span>
-            ) : pickedThisTurn && lastPickedValue !== null ? (
+            {pickedThisTurn && lastPickedValue !== null ? (
               <span className="flex items-center gap-2">
                 <span className="text-primary">⚡</span>
                 <span className="text-white/60 font-normal text-base">Your number is</span>
