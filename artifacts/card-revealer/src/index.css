@@ -154,6 +154,11 @@
   animation: numberPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+@keyframes bounceDown {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(6px); }
+}
+
 /* Neon glow border on revealed card wrapper */
 .card-revealed-glow {
   box-shadow:

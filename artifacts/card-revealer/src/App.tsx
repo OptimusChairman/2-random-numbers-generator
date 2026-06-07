@@ -155,7 +155,7 @@ function CardGame() {
                   {lastPickedValue}
                 </span>
                 <span className="text-white/40 font-normal text-base">— next turn</span>
-                <span className="text-primary animate-bounce inline-block">→</span>
+                <span className="text-primary inline-block" style={{ animation: "bounceDown 1s ease-in-out infinite" }}>↓</span>
               </span>
             ) : (
               <span className="flex items-center gap-2 text-white/60 font-normal">
