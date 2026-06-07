@@ -122,10 +122,10 @@ export default function App() {
       >
         <div style={{ textAlign: "center" }}>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: "#3b1f6e", letterSpacing: "-0.5px" }}>
-            Two Dice Roller
+            Two Generator
           </h1>
           <p style={{ margin: "6px 0 0", fontSize: 14, color: "#9b7ec8" }}>
-            Click the button to roll
+            Click the button to generate
           </p>
         </div>
 
@@ -190,7 +190,7 @@ export default function App() {
               textAlign: "center",
             }}
           >
-            <div style={{ fontSize: 20, color: "#9b7ec8", fontWeight: 600 }}>Rolling…</div>
+            <div style={{ fontSize: 20, color: "#9b7ec8", fontWeight: 600 }}>Generating…</div>
           </div>
         )}
 
@@ -213,7 +213,7 @@ export default function App() {
             letterSpacing: "0.3px",
           }}
         >
-          {rolling ? "Rolling…" : dice ? "Roll Again" : "Roll Dice"}
+          {rolling ? "Generating…" : dice ? "Generate Again" : "Generate"}
         </button>
       </div>
 
