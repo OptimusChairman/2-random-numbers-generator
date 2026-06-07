@@ -198,22 +198,20 @@ function CardGame() {
                   {/* Card Back */}
                   <div className="absolute inset-0 w-full h-full backface-hidden rounded-2xl shadow-xl border-4 border-primary/40 overflow-hidden card-back-pattern" />
 
-                  {/* Card Front */}
+                  {/* Card Front — Anime power-up style */}
                   <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-2xl overflow-hidden card-front flex items-center justify-center">
-                    {/* gradient bg */}
+                    {/* dark base */}
                     <div className="absolute inset-0 card-front-bg" />
-                    {/* decorative corner diamonds */}
-                    <span className="absolute top-2.5 left-3 text-xs font-black text-primary select-none">◆</span>
-                    <span className="absolute top-2.5 right-3 text-xs font-black text-primary select-none">◆</span>
-                    <span className="absolute bottom-2.5 left-3 text-xs font-black text-primary select-none">◆</span>
-                    <span className="absolute bottom-2.5 right-3 text-xs font-black text-primary select-none">◆</span>
-                    {/* corner numbers */}
-                    <span className="absolute top-6 left-3.5 text-sm font-black text-white/50 select-none">{card.value}</span>
-                    <span className="absolute bottom-6 right-3.5 text-sm font-black text-white/50 rotate-180 select-none">{card.value}</span>
-                    {/* main number — animate independently */}
+                    {/* speed-line starburst */}
+                    <div className="absolute inset-0 card-starburst" />
+                    {/* outer energy ring */}
+                    <div className="absolute w-[72%] aspect-square rounded-full card-ring-outer" />
+                    {/* inner energy ring */}
+                    <div className="absolute w-[44%] aspect-square rounded-full card-ring-inner" />
+                    {/* main number */}
                     <span
-                      className={`relative z-10 font-black text-white card-number ${isPopping ? "number-pop" : ""}`}
-                      style={{ fontSize: "clamp(3rem, 10vw, 4.5rem)" }}
+                      className={`relative z-10 font-black card-number ${isPopping ? "number-pop" : ""}`}
+                      style={{ fontSize: "clamp(2.8rem, 9vw, 4.2rem)" }}
                     >
                       {card.value}
                     </span>
