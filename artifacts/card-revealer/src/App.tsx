@@ -45,9 +45,7 @@ function CardGame() {
   const [mode, setMode] = useState<Mode>("11");
   const [cards, setCards] = useState<CardData[]>([]);
   const [isShuffling, setIsShuffling] = useState(true);
-  // ID of the card currently animating its pop (set after flip completes)
   const [poppingId, setPoppingId] = useState<string | null>(null);
-  // Block further picks until Next Turn
   const [pickedThisTurn, setPickedThisTurn] = useState(false);
 
   const currentMode = MODES.find((m) => m.id === mode)!;
@@ -55,6 +53,7 @@ function CardGame() {
   useEffect(() => {
     setIsShuffling(true);
     setPickedThisTurn(false);
+    setPoppingId(null);
     setCards(createDeck(currentMode.numbers));
     const t = setTimeout(() => setIsShuffling(false), 500);
     return () => clearTimeout(t);
@@ -70,10 +69,10 @@ function CardGame() {
       prev.map((c) => (c.id === id ? { ...c, isFlipped: true } : c))
     );
 
-    // Fire pop animation after the 3D flip finishes (650ms)
+    // Fire after the 3D flip finishes (650ms)
     setTimeout(() => {
       setPoppingId(id);
-      setTimeout(() => setPoppingId(null), 700);
+      setTimeout(() => setPoppingId(null), 900);
     }, 650);
   };
 
@@ -93,8 +92,8 @@ function CardGame() {
     setMode(newMode);
   };
 
-  const revealedCount = cards.filter((c) => c.isFlipped).length;
   const total = currentMode.numbers.length;
+  const revealedCount = cards.filter((c) => c.isFlipped).length;
   const isComplete = revealedCount === total && total > 0;
 
   return (
@@ -129,14 +128,12 @@ function CardGame() {
           ))}
         </div>
 
-        {/* Counter + status hint */}
+        {/* Status box + button */}
         <div className="flex flex-col items-center space-y-4">
-          <div className={`px-6 py-2 rounded-full border-2 transition-all duration-500 font-bold text-lg
+          <div className={`px-8 py-3 rounded-full border-2 transition-all duration-500 font-bold text-lg
             ${isComplete
               ? "border-secondary bg-secondary/10 text-secondary scale-110 shadow-[0_0_20px_rgba(0,255,255,0.4)]"
-              : pickedThisTurn
-              ? "border-primary/60 bg-primary/10 text-primary"
-              : "border-muted-foreground/30 bg-card text-muted-foreground"
+              : "border-muted-foreground/30 bg-card text-white"
             }`}
           >
             {isComplete ? (
@@ -145,10 +142,8 @@ function CardGame() {
                 All Revealed!
                 <Sparkles className="w-5 h-5" />
               </span>
-            ) : pickedThisTurn ? (
-              <span>Card revealed — press Next Turn</span>
             ) : (
-              <span>{revealedCount} / {total} REVEALED</span>
+              <span>Select your card</span>
             )}
           </div>
 
@@ -172,12 +167,14 @@ function CardGame() {
         >
           {cards.map((card, index) => {
             const isLocked = !card.isFlipped && pickedThisTurn;
+            const isPopping = poppingId === card.id;
+
             return (
               <div
                 key={card.id}
                 onClick={() => handleFlip(card.id)}
-                className={`w-full max-w-[160px] aspect-[3/4] perspective-1000 select-none
-                  ${card.isFlipped ? "cursor-default" : isLocked ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
+                className={`w-full max-w-[160px] aspect-[3/4] perspective-1000 select-none relative
+                  ${card.isFlipped ? "cursor-default" : isLocked ? "cursor-not-allowed opacity-40" : "cursor-pointer"}
                 `}
                 style={{
                   transitionDelay: `${isShuffling ? index * 30 : 0}ms`,
@@ -187,6 +184,7 @@ function CardGame() {
                   transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease",
                 }}
               >
+                {/* 3D flip container */}
                 <div
                   className={`relative w-full h-full transform-style-3d ${
                     card.isFlipped ? "rotate-y-180" : (!isLocked ? "hover:-translate-y-2" : "")
@@ -201,30 +199,31 @@ function CardGame() {
                   <div className="absolute inset-0 w-full h-full backface-hidden rounded-2xl shadow-xl border-4 border-primary/40 overflow-hidden card-back-pattern" />
 
                   {/* Card Front */}
-                  <div
-                    className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-2xl shadow-2xl overflow-hidden card-front flex items-center justify-center"
-                    style={poppingId === card.id ? { animation: "cardPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards" } : {}}
-                  >
-                    {/* decorative background rings */}
+                  <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-2xl overflow-hidden card-front flex items-center justify-center">
+                    {/* gradient bg */}
                     <div className="absolute inset-0 card-front-bg" />
-                    <div className="absolute w-32 h-32 rounded-full bg-white/5 border border-white/10" />
-                    <div className="absolute w-20 h-20 rounded-full bg-white/5 border border-white/10" />
-                    {/* corner accents */}
-                    <span className="absolute top-2 left-3 text-xs font-black text-white/40">{card.value}</span>
-                    <span className="absolute bottom-2 right-3 text-xs font-black text-white/40 rotate-180">{card.value}</span>
-                    {/* main number */}
+                    {/* decorative corner diamonds */}
+                    <span className="absolute top-2.5 left-3 text-xs font-black text-primary select-none">◆</span>
+                    <span className="absolute top-2.5 right-3 text-xs font-black text-primary select-none">◆</span>
+                    <span className="absolute bottom-2.5 left-3 text-xs font-black text-primary select-none">◆</span>
+                    <span className="absolute bottom-2.5 right-3 text-xs font-black text-primary select-none">◆</span>
+                    {/* corner numbers */}
+                    <span className="absolute top-6 left-3.5 text-sm font-black text-white/50 select-none">{card.value}</span>
+                    <span className="absolute bottom-6 right-3.5 text-sm font-black text-white/50 rotate-180 select-none">{card.value}</span>
+                    {/* main number — animate independently */}
                     <span
-                      className="relative z-10 font-black text-white"
-                      style={{
-                        fontSize: "clamp(3rem, 8vw, 4.5rem)",
-                        textShadow: "0 0 30px rgba(0,255,255,0.7), 0 0 60px rgba(0,255,255,0.3)",
-                        filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))",
-                      }}
+                      className={`relative z-10 font-black text-white card-number ${isPopping ? "number-pop" : ""}`}
+                      style={{ fontSize: "clamp(3rem, 10vw, 4.5rem)" }}
                     >
                       {card.value}
                     </span>
                   </div>
                 </div>
+
+                {/* Ripple overlay — OUTSIDE 3D context, always 2D, guaranteed visible */}
+                {isPopping && (
+                  <div className="absolute inset-0 rounded-2xl pointer-events-none reveal-ripple" />
+                )}
               </div>
             );
           })}
