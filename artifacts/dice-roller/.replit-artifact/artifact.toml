@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Two Dice Roller"
+version = "1.0.0"
+id = "artifacts/dice-roller"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19731
+
+[services.development]
+run = "pnpm --filter @workspace/dice-roller run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/dice-roller", "run", "build" ]
+publicDir = "artifacts/dice-roller/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19731"
+BASE_PATH = "/"
