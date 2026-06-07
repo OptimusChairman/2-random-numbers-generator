@@ -47,6 +47,7 @@ function CardGame() {
   const [isShuffling, setIsShuffling] = useState(true);
   const [poppingId, setPoppingId] = useState<string | null>(null);
   const [pickedThisTurn, setPickedThisTurn] = useState(false);
+  const [lastPickedValue, setLastPickedValue] = useState<number | null>(null);
 
   const currentMode = MODES.find((m) => m.id === mode)!;
 
@@ -65,6 +66,7 @@ function CardGame() {
     if (!card || card.isFlipped) return;
 
     setPickedThisTurn(true);
+    setLastPickedValue(card.value);
     setCards((prev) =>
       prev.map((c) => (c.id === id ? { ...c, isFlipped: true } : c))
     );
@@ -79,6 +81,7 @@ function CardGame() {
   const handleRandomize = useCallback(() => {
     setIsShuffling(true);
     setPickedThisTurn(false);
+    setLastPickedValue(null);
     setPoppingId(null);
     setCards((prev) => prev.map((c) => ({ ...c, isFlipped: false })));
     setTimeout(() => {
@@ -133,7 +136,9 @@ function CardGame() {
           <div className={`px-8 py-3 rounded-full border-2 transition-all duration-500 font-bold text-lg
             ${isComplete
               ? "border-secondary bg-secondary/10 text-secondary scale-110 shadow-[0_0_20px_rgba(0,255,255,0.4)]"
-              : "border-muted-foreground/30 bg-card text-white"
+              : pickedThisTurn
+              ? "border-primary bg-primary/10 text-white shadow-[0_0_18px_rgba(255,80,220,0.45)]"
+              : "border-muted-foreground/30 bg-card text-white/70"
             }`}
           >
             {isComplete ? (
@@ -142,8 +147,22 @@ function CardGame() {
                 All Revealed!
                 <Sparkles className="w-5 h-5" />
               </span>
+            ) : pickedThisTurn && lastPickedValue !== null ? (
+              <span className="flex items-center gap-2">
+                <span className="text-primary">⚡</span>
+                <span className="text-white/60 font-normal text-base">Your number is</span>
+                <span className="text-secondary font-black text-xl" style={{ textShadow: "0 0 12px rgba(0,230,255,0.8)" }}>
+                  {lastPickedValue}
+                </span>
+                <span className="text-white/40 font-normal text-base">— next turn</span>
+                <span className="text-primary animate-bounce inline-block">→</span>
+              </span>
             ) : (
-              <span>Select your card</span>
+              <span className="flex items-center gap-2 text-white/60 font-normal">
+                <span className="text-primary">✦</span>
+                Choose your fate
+                <span className="text-primary">✦</span>
+              </span>
             )}
           </div>
 
