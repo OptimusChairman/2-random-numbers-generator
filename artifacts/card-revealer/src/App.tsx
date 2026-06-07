@@ -173,8 +173,8 @@ function CardGame() {
               <div
                 key={card.id}
                 onClick={() => handleFlip(card.id)}
-                className={`w-full max-w-[160px] aspect-[3/4] perspective-1000 select-none relative
-                  ${card.isFlipped ? "cursor-default" : isLocked ? "cursor-not-allowed opacity-40" : "cursor-pointer"}
+                className={`w-full max-w-[160px] aspect-[3/4] perspective-1000 select-none relative rounded-2xl
+                  ${card.isFlipped ? "cursor-default card-revealed-glow" : isLocked ? "cursor-not-allowed opacity-40" : "cursor-pointer"}
                 `}
                 style={{
                   transitionDelay: `${isShuffling ? index * 30 : 0}ms`,
