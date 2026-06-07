@@ -7,13 +7,13 @@ type Mode = "6" | "11";
 const MODES: { id: Mode; label: string; description: string; numbers: number[] }[] = [
   {
     id: "6",
-    label: "Option 1",
+    label: "Set 1",
     description: "6 cards · 1 to 6",
     numbers: Array.from({ length: 6 }, (_, i) => i + 1),
   },
   {
     id: "11",
-    label: "Option 2",
+    label: "Set 2",
     description: "11 cards · 2 to 12",
     numbers: Array.from({ length: 11 }, (_, i) => i + 2),
   },
@@ -46,6 +46,7 @@ function CardGame() {
   const [mode, setMode] = useState<Mode>("11");
   const [cards, setCards] = useState<CardData[]>([]);
   const [isShuffling, setIsShuffling] = useState(true);
+  const [lastRevealedId, setLastRevealedId] = useState<string | null>(null);
 
   const currentMode = MODES.find((m) => m.id === mode)!;
 
@@ -63,11 +64,13 @@ function CardGame() {
 
   const handleFlip = (id: string) => {
     if (isShuffling) return;
+    const card = cards.find((c) => c.id === id);
+    if (!card || card.isFlipped) return;
     setCards((prev) =>
-      prev.map((card) =>
-        card.id === id && !card.isFlipped ? { ...card, isFlipped: true } : card
-      )
+      prev.map((c) => (c.id === id ? { ...c, isFlipped: true } : c))
     );
+    setLastRevealedId(id);
+    setTimeout(() => setLastRevealedId(null), 600);
   };
 
   const handleRandomize = useCallback(() => {
@@ -93,10 +96,13 @@ function CardGame() {
       <div className="w-full max-w-4xl mx-auto space-y-8 flex flex-col items-center">
 
         {/* Header */}
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-3">
           <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white drop-shadow-md">
-            Mystery Reveal
+            Alternative for Dice
           </h1>
+          <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto leading-relaxed">
+            A card-based alternative to rolling dice. Flip hidden cards to reveal numbers — each value appears exactly once per turn, giving you fair, shuffled results every time.
+          </p>
         </div>
 
         {/* Mode Selector */}
@@ -143,7 +149,7 @@ function CardGame() {
             className="font-bold tracking-wide text-md rounded-xl h-14 px-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_15px_rgba(255,51,102,0.5)] hover:shadow-[0_0_25px_rgba(255,51,102,0.7)] transition-all"
           >
             <RefreshCw className={`w-5 h-5 mr-2 ${isShuffling ? "animate-spin" : ""}`} />
-            Randomize Again
+            Next Turn
           </Button>
         </div>
 
@@ -181,7 +187,10 @@ function CardGame() {
                 <div className="absolute inset-0 w-full h-full backface-hidden rounded-2xl shadow-xl border-4 border-primary/40 overflow-hidden card-back-pattern" />
 
                 {/* Card Front */}
-                <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 bg-white rounded-2xl shadow-2xl border-4 border-secondary/50 flex items-center justify-center">
+                <div
+                  className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 bg-white rounded-2xl shadow-2xl border-4 border-secondary/50 flex items-center justify-center"
+                  style={lastRevealedId === card.id ? { animation: "cardPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)" } : {}}
+                >
                   <div className="absolute inset-2 border-2 border-dashed border-gray-200 rounded-xl" />
                   <span
                     className="text-6xl md:text-7xl font-black text-slate-900 z-10"
