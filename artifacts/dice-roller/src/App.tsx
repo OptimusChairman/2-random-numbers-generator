@@ -1,41 +1,6 @@
 import { useState, useCallback } from "react";
 
-const DOT_POSITIONS: Record<number, { top: string; left: string }[]> = {
-  1: [{ top: "50%", left: "50%" }],
-  2: [
-    { top: "25%", left: "25%" },
-    { top: "75%", left: "75%" },
-  ],
-  3: [
-    { top: "20%", left: "20%" },
-    { top: "50%", left: "50%" },
-    { top: "80%", left: "80%" },
-  ],
-  4: [
-    { top: "25%", left: "25%" },
-    { top: "25%", left: "75%" },
-    { top: "75%", left: "25%" },
-    { top: "75%", left: "75%" },
-  ],
-  5: [
-    { top: "25%", left: "25%" },
-    { top: "25%", left: "75%" },
-    { top: "50%", left: "50%" },
-    { top: "75%", left: "25%" },
-    { top: "75%", left: "75%" },
-  ],
-  6: [
-    { top: "22%", left: "25%" },
-    { top: "22%", left: "75%" },
-    { top: "50%", left: "25%" },
-    { top: "50%", left: "75%" },
-    { top: "78%", left: "25%" },
-    { top: "78%", left: "75%" },
-  ],
-};
-
 function Die({ value, rolling }: { value: number; rolling: boolean }) {
-  const dots = DOT_POSITIONS[value] ?? [];
   return (
     <div
       className={`die ${rolling ? "rolling" : ""}`}
@@ -45,28 +10,16 @@ function Die({ value, rolling }: { value: number; rolling: boolean }) {
         borderRadius: 18,
         background: "white",
         boxShadow: "0 6px 24px rgba(99,60,180,0.18), 0 2px 6px rgba(0,0,0,0.10)",
-        position: "relative",
-        display: "inline-block",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
         border: "2px solid #e2d9f3",
         transition: "transform 0.1s",
       }}
     >
-      {dots.map((pos, i) => (
-        <span
-          key={i}
-          style={{
-            position: "absolute",
-            top: pos.top,
-            left: pos.left,
-            transform: "translate(-50%, -50%)",
-            width: 16,
-            height: 16,
-            borderRadius: "50%",
-            background: "#6B3FA0",
-            display: "block",
-          }}
-        />
-      ))}
+      <span style={{ fontSize: 52, fontWeight: 800, color: "#6B3FA0", lineHeight: 1 }}>
+        {value}
+      </span>
     </div>
   );
 }
