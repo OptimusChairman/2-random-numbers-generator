@@ -160,7 +160,7 @@ function CardGame() {
             ) : (
               <span className="flex items-center gap-2 text-white/60 font-normal">
                 <span className="text-primary">✦</span>
-                Choose your fate
+                Pick a number
                 <span className="text-primary">✦</span>
               </span>
             )}
