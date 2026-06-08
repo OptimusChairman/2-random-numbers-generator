@@ -116,7 +116,7 @@ function CardGame() {
             Alternative for Dice
           </h1>
           <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto leading-relaxed">
-            A card-based alternative to rolling dice. Flip one hidden card per turn to reveal a number — each value appears exactly once, giving you fair, shuffled results every time.
+            A card-based alternative to rolling dice. Flip one hidden card per turn to reveal a number, then reshuffle for the next turn. Enjoy visually randomized results with a unique card-reveal experience.
           </p>
         </div>
 
