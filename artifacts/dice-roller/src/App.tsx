@@ -1,4 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
+
+function rollDie(): number {
+  return Math.floor(Math.random() * 6) + 1;
+}
 
 function Die({ value, rolling }: { value: number; rolling: boolean }) {
   return (
@@ -27,24 +31,35 @@ function Die({ value, rolling }: { value: number; rolling: boolean }) {
 export default function App() {
   const [dice, setDice] = useState<[number, number] | null>(null);
   const [rolling, setRolling] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const roll = useCallback(() => {
     if (rolling) return;
+
+    // Clear any lingering timers from a previous roll (safety)
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
     setRolling(true);
-    const duration = 600;
-    const interval = setInterval(() => {
-      setDice([
-        Math.ceil(Math.random() * 6),
-        Math.ceil(Math.random() * 6),
-      ]);
+
+    // Rapid cycling for visual effect — does NOT affect the final result
+    intervalRef.current = setInterval(() => {
+      setDice([rollDie(), rollDie()]);
     }, 80);
-    setTimeout(() => {
-      clearInterval(interval);
-      const d1 = Math.ceil(Math.random() * 6);
-      const d2 = Math.ceil(Math.random() * 6);
+
+    // After 600 ms: stop cycling, set the real final roll
+    timeoutRef.current = setTimeout(() => {
+      clearInterval(intervalRef.current!);
+      intervalRef.current = null;
+      timeoutRef.current = null;
+
+      // Final independent roll — clean, unaffected by interval timing
+      const d1 = rollDie();
+      const d2 = rollDie();
       setDice([d1, d2]);
       setRolling(false);
-    }, duration);
+    }, 600);
   }, [rolling]);
 
   const sum = dice ? dice[0] + dice[1] : null;
@@ -90,12 +105,7 @@ export default function App() {
               <Die value={dice[1]} rolling={rolling} />
             </>
           ) : (
-            <div
-              style={{
-                display: "flex",
-                gap: 28,
-              }}
-            >
+            <div style={{ display: "flex", gap: 28 }}>
               {[0, 1].map((i) => (
                 <div
                   key={i}
