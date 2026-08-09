@@ -1,0 +1,1 @@
+- [Workspace dependency security](dependency-security-overrides.md) — Root pnpm overrides can enforce patched floors for vulnerable transitive packages; verify both lockfile and installed tree.
