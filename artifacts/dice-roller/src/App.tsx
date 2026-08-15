@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// Select one of 36 equally likely pairs so every two-die outcome remains fair.
-function rollDice(): [number, number] {
+// Select one of 36 equally likely pairs so every outcome remains fair.
+function generatePair(): [number, number] {
   const outcome = Math.floor(Math.random() * 36);
   return [Math.floor(outcome / 6) + 1, (outcome % 6) + 1];
 }
@@ -22,35 +22,46 @@ const EXPECTED: Record<number, number> = {
 
 const DISTRIBUTION_ORDER = [7, 6, 8, 5, 9, 4, 10, 3, 11, 2, 12];
 
-function Die({ value, rolling, label }: { value: number; rolling: boolean; label: string }) {
+function NumberNode({
+  value,
+  rolling,
+  index,
+}: {
+  value: number;
+  rolling: boolean;
+  index: "a" | "b";
+}) {
   return (
-    <div className="die-wrap">
-      <span className="die-index">{label}</span>
-      <div
-        className={`die ${rolling ? "rolling" : ""}`}
-        role="img"
-        aria-label={`${label} shows ${value}`}
-        data-testid={`die-${label.toLowerCase()}`}
+    <div className={`number-node ${rolling ? "is-charged" : ""}`}>
+      <span className="number-index">{index === "a" ? "A / 01" : "B / 02"}</span>
+      <output
+        className="number-value"
+        aria-label={`Number ${index.toUpperCase()} is ${value}`}
+        data-testid={`text-number-${index}`}
       >
-        <span className="die-value">{value}</span>
-      </div>
+        {value}
+      </output>
     </div>
   );
 }
 
-function PlaceholderDie({ label }: { label: string }) {
+function NumberPlaceholder({ index }: { index: "a" | "b" }) {
   return (
-    <div className="die-wrap">
-      <span className="die-index">{label}</span>
-      <div className="die-placeholder" aria-label={`${label} is waiting for a roll`} data-testid={`die-placeholder-${label.toLowerCase()}`}>
-        <span aria-hidden="true">?</span>
-      </div>
+    <div className="number-node number-node-placeholder">
+      <span className="number-index">{index === "a" ? "A / 01" : "B / 02"}</span>
+      <output
+        className="number-value"
+        aria-label={`Number ${index.toUpperCase()} is waiting`}
+        data-testid={`text-number-${index}`}
+      >
+        ·
+      </output>
     </div>
   );
 }
 
 export default function App() {
-  const [dice, setDice] = useState<[number, number] | null>(null);
+  const [pair, setPair] = useState<[number, number] | null>(null);
   const [rolling, setRolling] = useState(false);
   const [tally, setTally] = useState<Record<number, number>>({});
   const [totalRolls, setTotalRolls] = useState(0);
@@ -65,7 +76,7 @@ export default function App() {
     };
   }, []);
 
-  const roll = useCallback(() => {
+  const generate = useCallback(() => {
     if (rolling) return;
 
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -73,7 +84,7 @@ export default function App() {
 
     setRolling(true);
     intervalRef.current = setInterval(() => {
-      setDice(rollDice());
+      setPair(generatePair());
     }, 78);
 
     timeoutRef.current = setTimeout(() => {
@@ -81,17 +92,17 @@ export default function App() {
       intervalRef.current = null;
       timeoutRef.current = null;
 
-      const result = rollDice();
+      const result = generatePair();
       const sum = result[0] + result[1];
-      setDice(result);
+      setPair(result);
       setRolling(false);
       setTally((previous) => ({ ...previous, [sum]: (previous[sum] ?? 0) + 1 }));
       setTotalRolls((previous) => previous + 1);
     }, 650);
   }, [rolling]);
 
-  const sum = dice ? dice[0] + dice[1] : null;
-  const statusText = rolling ? "The portal is turning" : sum !== null ? `Total ${sum}` : "Ready when you are";
+  const sum = pair ? pair[0] + pair[1] : null;
+  const statusText = rolling ? "Signal in motion" : sum !== null ? `Total ${sum}` : "Awaiting signal";
 
   return (
     <main className="cosmos">
@@ -100,39 +111,55 @@ export default function App() {
 
       <div className="app-shell">
         <header className="topbar">
-          <div className="brand-mark" aria-label="Chance portal">
-            <span className="brand-symbol" aria-hidden="true" />
+          <div className="brand-mark" aria-label="Chance channel">
+            <span className="brand-symbol" aria-hidden="true">
+              <span />
+            </span>
             <span>Chance / 02</span>
           </div>
-          <span className="topbar-note">A tiny ritual of randomness</span>
+          <span className="topbar-note">Signal archive</span>
         </header>
 
         <section className="hero" aria-labelledby="page-title">
-          <p className="eyebrow">Two paths · one moment</p>
-          <h1 id="page-title">Open the <em>portal.</em></h1>
-          <p className="hero-copy">
-            Two fair dice. Thirty-six possible doors. Roll when you need a small, beautiful answer.
-          </p>
+          <p className="eyebrow">Random channel / 02</p>
+          <h1 id="page-title">
+            Turn the <em>signal.</em>
+          </h1>
         </section>
 
-        <section className="portal-card" aria-label="Two dice roller">
+        <section className="portal-card" aria-label="Two-number generator">
           <div className="portal-label">
-            <span>Live chamber</span>
-            <span>{rolling ? "Calculating" : "Awaiting chance"}</span>
+            <span>Live channel</span>
+            <span>{rolling ? "Charging" : "Standby"}</span>
           </div>
 
-          <div className="dice-stage" aria-live="polite" aria-atomic="true">
-            {dice ? (
+          <div className={`number-stage ${rolling ? "is-charged" : ""}`} aria-live="polite" aria-atomic="true">
+            <div className="energy-field" aria-hidden="true">
+              <span className="energy-halo halo-one" />
+              <span className="energy-halo halo-two" />
+              <span className="sigil sigil-one" />
+              <span className="sigil sigil-two" />
+              <span className="speed-line speed-line-one" />
+              <span className="speed-line speed-line-two" />
+              <span className="speed-line speed-line-three" />
+              <span className="energy-core" />
+            </div>
+
+            {pair ? (
               <>
-                <Die value={dice[0]} rolling={rolling} label="Die one" />
-                <span className="plus-mark" aria-hidden="true">+</span>
-                <Die value={dice[1]} rolling={rolling} label="Die two" />
+                <NumberNode value={pair[0]} rolling={rolling} index="a" />
+                <span className="plus-mark" aria-hidden="true">
+                  +
+                </span>
+                <NumberNode value={pair[1]} rolling={rolling} index="b" />
               </>
             ) : (
               <>
-                <PlaceholderDie label="Die one" />
-                <span className="plus-mark" aria-hidden="true">+</span>
-                <PlaceholderDie label="Die two" />
+                <NumberPlaceholder index="a" />
+                <span className="plus-mark" aria-hidden="true">
+                  +
+                </span>
+                <NumberPlaceholder index="b" />
               </>
             )}
           </div>
@@ -141,20 +168,26 @@ export default function App() {
             {rolling ? (
               <>
                 <span className="result-kicker">Result</span>
-                <span className="result-value">Generating</span>
-                <span className="result-formula" aria-hidden="true">•••</span>
+                <span className="result-value">Resolving</span>
+                <span className="result-formula" aria-hidden="true">
+                  · · ·
+                </span>
               </>
             ) : sum !== null ? (
               <>
                 <span className="result-kicker">Total</span>
-                <span className="result-value" data-testid="text-total">{sum}</span>
-                <span className="result-formula">{dice![0]} + {dice![1]}</span>
+                <span className="result-value" data-testid="text-total">
+                  {sum}
+                </span>
+                <span className="result-formula">
+                  {pair![0]} + {pair![1]}
+                </span>
               </>
             ) : (
               <>
                 <span className="result-kicker">Result</span>
                 <span className="result-value">—</span>
-                <span className="result-formula">Your numbers will appear here</span>
+                <span className="result-formula">No signal yet</span>
               </>
             )}
           </div>
@@ -162,17 +195,19 @@ export default function App() {
           <button
             type="button"
             className="roll-button"
-            onClick={roll}
+            onClick={generate}
             disabled={rolling}
-            aria-label={rolling ? "Generating a new pair of dice" : dice ? "Roll the dice again" : "Roll the dice"}
+            aria-label={rolling ? "Generating a new pair of numbers" : pair ? "Generate another pair" : "Generate two numbers"}
             data-testid="button-roll"
           >
-            {rolling ? "Turning the chance" : dice ? "Roll again" : "Roll the dice"}
+            {rolling ? "Resolving" : pair ? "Generate again" : "Generate pair"}
           </button>
 
           <div className="portal-foot">
             <span>{statusText}</span>
-            <span><strong>{totalRolls}</strong> {totalRolls === 1 ? "reading" : "readings"} recorded</span>
+            <span>
+              <strong>{totalRolls}</strong> {totalRolls === 1 ? "reading" : "readings"}
+            </span>
           </div>
         </section>
 
@@ -185,15 +220,16 @@ export default function App() {
             aria-controls="distribution-panel"
             data-testid="button-toggle-stats"
           >
-            {showStats ? "Close distribution" : "View distribution"} · {totalRolls} {totalRolls === 1 ? "roll" : "rolls"}
+            {showStats ? "Close distribution" : "View distribution"} · {totalRolls}{" "}
+            {totalRolls === 1 ? "reading" : "readings"}
           </button>
         )}
 
         {showStats && totalRolls > 0 && (
           <section className="stats-panel" id="distribution-panel" aria-labelledby="distribution-title">
             <div className="stats-heading">
-              <h2 id="distribution-title">Roll distribution</h2>
-              <p>{totalRolls} total {totalRolls === 1 ? "roll" : "rolls"}</p>
+              <h2 id="distribution-title">Distribution</h2>
+              <p>{totalRolls} total readings</p>
             </div>
 
             {DISTRIBUTION_ORDER.map((value) => {
@@ -206,9 +242,14 @@ export default function App() {
                 <div className="distribution-row" key={value} data-testid={`distribution-row-${value}`}>
                   <div className="distribution-meta">
                     <strong>{value}</strong>
-                    <span>{count}× · actual <b>{actualPct.toFixed(1)}%</b> / expected {expectedPct.toFixed(2)}%</span>
+                    <span>
+                      {count}× · actual <b>{actualPct.toFixed(1)}%</b> / expected {expectedPct.toFixed(2)}%
+                    </span>
                   </div>
-                  <div className="distribution-track" aria-label={`Sum ${value}: ${count} rolls, ${actualPct.toFixed(1)} percent actual`}>
+                  <div
+                    className="distribution-track"
+                    aria-label={`Total ${value}: ${count} readings, ${actualPct.toFixed(1)} percent actual`}
+                  >
                     <div className="distribution-expected" aria-hidden="true" />
                     <div className="distribution-fill" style={{ width: `${fillWidth}%` }} aria-hidden="true" />
                   </div>
@@ -216,13 +257,11 @@ export default function App() {
               );
             })}
 
-            <p className="stats-legend">
-              The brighter fill is your observed share against the expected odds. Short runs wander; the pattern settles with time.
-            </p>
+            <p className="stats-legend">Observed share / expected share</p>
           </section>
         )}
 
-        <p className="footer-note">Each pair has a 1 in 36 chance · no hidden weighting</p>
+        <p className="footer-note">36 equal outcomes</p>
       </div>
     </main>
   );
