@@ -111,19 +111,19 @@ export default function App() {
 
       <div className="app-shell">
         <header className="topbar">
-          <div className="brand-mark" aria-label="Chance channel">
+          <div className="brand-mark" aria-label="Version 2.0">
             <span className="brand-symbol" aria-hidden="true">
               <span />
             </span>
-            <span>Chance / 02</span>
+            <span>Version 2.0</span>
           </div>
-          <span className="topbar-note">Signal archive</span>
+          <span className="topbar-note">Between 1 and 6</span>
         </header>
 
         <section className="hero" aria-labelledby="page-title">
-          <p className="eyebrow">Random channel / 02</p>
+          <p className="eyebrow">Random number generator</p>
           <h1 id="page-title">
-            Turn the <em>signal.</em>
+            Generate 2 <em>random numbers.</em>
           </h1>
         </section>
 
