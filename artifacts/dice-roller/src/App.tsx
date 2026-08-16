@@ -21,6 +21,7 @@ const EXPECTED: Record<number, number> = {
 };
 
 const DISTRIBUTION_ORDER = [7, 6, 8, 5, 9, 4, 10, 3, 11, 2, 12];
+type Result = { pair: [number, number]; sum: number };
 
 function NumberNode({
   value,
@@ -32,7 +33,7 @@ function NumberNode({
   index: "a" | "b";
 }) {
   return (
-    <div className={`number-node ${rolling ? "is-charged" : ""}`}>
+    <div className={`number-node number-node-${index} ${rolling ? "is-charged" : "is-revealed"}`}>
       <span className="number-index">{index === "a" ? "A / 01" : "B / 02"}</span>
       <output
         className="number-value"
@@ -65,6 +66,7 @@ export default function App() {
   const [rolling, setRolling] = useState(false);
   const [tally, setTally] = useState<Record<number, number>>({});
   const [totalRolls, setTotalRolls] = useState(0);
+  const [recentResults, setRecentResults] = useState<Result[]>([]);
   const [showStats, setShowStats] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -98,11 +100,19 @@ export default function App() {
       setRolling(false);
       setTally((previous) => ({ ...previous, [sum]: (previous[sum] ?? 0) + 1 }));
       setTotalRolls((previous) => previous + 1);
+      setRecentResults((previous) => [{ pair: result, sum }, ...previous].slice(0, 3));
     }, 650);
   }, [rolling]);
 
+  const resetHistory = useCallback(() => {
+    setTally({});
+    setTotalRolls(0);
+    setRecentResults([]);
+    setShowStats(false);
+  }, []);
+
   const sum = pair ? pair[0] + pair[1] : null;
-  const statusText = rolling ? "Signal in motion" : sum !== null ? `Total ${sum}` : "Awaiting signal";
+  const statusText = rolling ? "Generating" : sum !== null ? "Latest result" : "Ready to generate";
 
   return (
     <main className="cosmos">
@@ -129,8 +139,8 @@ export default function App() {
 
         <section className="portal-card" aria-label="Two-number generator">
           <div className="portal-label">
-            <span>Live channel</span>
-            <span>{rolling ? "Charging" : "Standby"}</span>
+            <span>Range 1–6</span>
+            <span>{rolling ? "Generating" : "Ready"}</span>
           </div>
 
           <div className={`number-stage ${rolling ? "is-charged" : ""}`} aria-live="polite" aria-atomic="true">
@@ -164,11 +174,15 @@ export default function App() {
             )}
           </div>
 
-          <div className={`result-band ${rolling ? "is-rolling" : ""}`} role="status" data-testid="status-result">
+          <div
+            className={`result-band ${rolling ? "is-rolling" : ""} ${sum !== null && !rolling ? "is-final" : ""}`}
+            role="status"
+            data-testid="status-result"
+          >
             {rolling ? (
               <>
                 <span className="result-kicker">Result</span>
-                <span className="result-value">Resolving</span>
+                <span className="result-value">Generating</span>
                 <span className="result-formula" aria-hidden="true">
                   · · ·
                 </span>
@@ -187,7 +201,7 @@ export default function App() {
               <>
                 <span className="result-kicker">Result</span>
                 <span className="result-value">—</span>
-                <span className="result-formula">No signal yet</span>
+                <span className="result-formula">No result yet</span>
               </>
             )}
           </div>
@@ -197,39 +211,69 @@ export default function App() {
             className="roll-button"
             onClick={generate}
             disabled={rolling}
-            aria-label={rolling ? "Generating a new pair of numbers" : pair ? "Generate another pair" : "Generate two numbers"}
+            aria-label={rolling ? "Generating two numbers" : pair ? "Generate another pair of numbers" : "Generate two numbers"}
             data-testid="button-roll"
           >
-            {rolling ? "Resolving" : pair ? "Generate again" : "Generate pair"}
+            {rolling ? "Generating" : pair ? "Generate again" : "Generate 2 numbers"}
           </button>
 
           <div className="portal-foot">
             <span>{statusText}</span>
             <span>
-              <strong>{totalRolls}</strong> {totalRolls === 1 ? "reading" : "readings"}
+              <strong>{totalRolls}</strong> {totalRolls === 1 ? "result" : "results"}
             </span>
           </div>
         </section>
 
         {totalRolls > 0 && (
-          <button
-            type="button"
-            className="stats-toggle"
-            onClick={() => setShowStats((visible) => !visible)}
-            aria-expanded={showStats}
-            aria-controls="distribution-panel"
-            data-testid="button-toggle-stats"
-          >
-            {showStats ? "Close distribution" : "View distribution"} · {totalRolls}{" "}
-            {totalRolls === 1 ? "reading" : "readings"}
-          </button>
+          <>
+            <section className="recent-results" aria-labelledby="recent-results-title">
+              <div className="recent-heading">
+                <h2 id="recent-results-title">Recent results</h2>
+                <span>Last {Math.min(recentResults.length, 3)}</span>
+              </div>
+              <div className="recent-list">
+                {recentResults.map(({ pair: recentPair, sum: recentSum }, index) => (
+                  <div className="recent-result" key={`${recentPair[0]}-${recentPair[1]}-${index}`}>
+                    <span className="recent-result-index">0{index + 1}</span>
+                    <strong>
+                      {recentPair[0]} + {recentPair[1]}
+                    </strong>
+                    <span className="recent-result-total">= {recentSum}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <div className="history-actions">
+              <button
+                type="button"
+                className="stats-toggle"
+                onClick={() => setShowStats((visible) => !visible)}
+                aria-expanded={showStats}
+                aria-controls="distribution-panel"
+                data-testid="button-toggle-stats"
+              >
+                {showStats ? "Close distribution" : "View distribution"} · {totalRolls}{" "}
+                {totalRolls === 1 ? "result" : "results"}
+              </button>
+              <button
+                type="button"
+                className="reset-button"
+                onClick={resetHistory}
+                data-testid="button-reset-history"
+              >
+                Reset history
+              </button>
+            </div>
+          </>
         )}
 
         {showStats && totalRolls > 0 && (
           <section className="stats-panel" id="distribution-panel" aria-labelledby="distribution-title">
             <div className="stats-heading">
               <h2 id="distribution-title">Distribution</h2>
-              <p>{totalRolls} total readings</p>
+              <p>{totalRolls} total results</p>
             </div>
 
             {DISTRIBUTION_ORDER.map((value) => {
@@ -248,7 +292,7 @@ export default function App() {
                   </div>
                   <div
                     className="distribution-track"
-                    aria-label={`Total ${value}: ${count} readings, ${actualPct.toFixed(1)} percent actual`}
+                    aria-label={`Total ${value}: ${count} results, ${actualPct.toFixed(1)} percent actual`}
                   >
                     <div className="distribution-expected" aria-hidden="true" />
                     <div className="distribution-fill" style={{ width: `${fillWidth}%` }} aria-hidden="true" />
@@ -261,7 +305,6 @@ export default function App() {
           </section>
         )}
 
-        <p className="footer-note">36 equal outcomes</p>
       </div>
     </main>
   );
