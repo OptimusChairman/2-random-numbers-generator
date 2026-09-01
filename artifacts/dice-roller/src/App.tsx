@@ -85,9 +85,10 @@ export default function App() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     setRolling(true);
+    const intervalMs = window.matchMedia("(hover: none) and (pointer: coarse)").matches ? 120 : 78;
     intervalRef.current = setInterval(() => {
       setPair(generatePair());
-    }, 78);
+    }, intervalMs);
 
     timeoutRef.current = setTimeout(() => {
       if (intervalRef.current) clearInterval(intervalRef.current);
