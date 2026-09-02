@@ -506,7 +506,7 @@ export default function App() {
                     </strong>
                     <small>
                       {probabilitySummary.closestTotals
-                        .map(({ actual, expected }) => `${actual.toFixed(1)}% vs ${expected.toFixed(2)}%`)
+                        .map(({ actual, expected }) => `${actual.toFixed(1)}% actual vs ${expected.toFixed(2)}% expected`)
                         .join(" · ")}
                     </small>
                   </div>
