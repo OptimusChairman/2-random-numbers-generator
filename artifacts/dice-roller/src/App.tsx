@@ -489,8 +489,14 @@ export default function App() {
                       {probabilitySummary.mostRepeatedTotals.join(" · ")}
                     </strong>
                     <small>
-                      {probabilitySummary.mostRepeatedCount}{" "}
-                      {probabilitySummary.mostRepeatedCount === 1 ? "result" : "results"} each
+                      {probabilitySummary.mostRepeatedTotals
+                        .map((value) => {
+                          const actual = ((tally[value] ?? 0) / totalRolls) * 100;
+                          const expected = (EXPECTED[value] / 36) * 100;
+                          const timesLabel = probabilitySummary.mostRepeatedCount === 1 ? "time" : "times";
+                          return `${probabilitySummary.mostRepeatedCount} ${timesLabel} (${actual.toFixed(1)}% actual vs ${expected.toFixed(2)}% expected)`;
+                        })
+                        .join(" · ")}
                     </small>
                   </div>
                   <div className="analysis-stat">
