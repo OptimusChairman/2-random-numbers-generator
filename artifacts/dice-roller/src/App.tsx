@@ -68,6 +68,7 @@ export default function App() {
   const [totalRolls, setTotalRolls] = useState(0);
   const [recentResults, setRecentResults] = useState<Result[]>([]);
   const [showStats, setShowStats] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -77,6 +78,20 @@ export default function App() {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!showStats && !showResetConfirm) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowStats(false);
+        setShowResetConfirm(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showStats, showResetConfirm]);
 
   const generate = useCallback(() => {
     if (rolling) return;
@@ -106,10 +121,12 @@ export default function App() {
   }, [rolling]);
 
   const resetHistory = useCallback(() => {
+    setPair(null);
     setTally({});
     setTotalRolls(0);
     setRecentResults([]);
     setShowStats(false);
+    setShowResetConfirm(false);
   }, []);
 
   const sum = pair ? pair[0] + pair[1] : null;
@@ -250,18 +267,18 @@ export default function App() {
               <button
                 type="button"
                 className="stats-toggle"
-                onClick={() => setShowStats((visible) => !visible)}
+                onClick={() => setShowStats(true)}
                 aria-expanded={showStats}
-                aria-controls="distribution-panel"
+                aria-controls="probability-modal"
                 data-testid="button-toggle-stats"
               >
-                {showStats ? "Close distribution" : "View distribution"} · {totalRolls}{" "}
+                View probability · {totalRolls}{" "}
                 {totalRolls === 1 ? "result" : "results"}
               </button>
               <button
                 type="button"
                 className="reset-button"
-                onClick={resetHistory}
+                onClick={() => setShowResetConfirm(true)}
                 data-testid="button-reset-history"
               >
                 Reset history
@@ -271,39 +288,119 @@ export default function App() {
         )}
 
         {showStats && totalRolls > 0 && (
-          <section className="stats-panel" id="distribution-panel" aria-labelledby="distribution-title">
-            <div className="stats-heading">
-              <h2 id="distribution-title">Distribution</h2>
-              <p>{totalRolls} total results</p>
-            </div>
-
-            {DISTRIBUTION_ORDER.map((value) => {
-              const count = tally[value] ?? 0;
-              const actualPct = (count / totalRolls) * 100;
-              const expectedPct = (EXPECTED[value] / 36) * 100;
-              const fillWidth = Math.min((actualPct / expectedPct) * 100, 100);
-
-              return (
-                <div className="distribution-row" key={value} data-testid={`distribution-row-${value}`}>
-                  <div className="distribution-meta">
-                    <strong>{value}</strong>
-                    <span>
-                      {count}× · actual <b>{actualPct.toFixed(1)}%</b> / expected {expectedPct.toFixed(2)}%
-                    </span>
-                  </div>
-                  <div
-                    className="distribution-track"
-                    aria-label={`Total ${value}: ${count} results, ${actualPct.toFixed(1)} percent actual`}
-                  >
-                    <div className="distribution-expected" aria-hidden="true" />
-                    <div className="distribution-fill" style={{ width: `${fillWidth}%` }} aria-hidden="true" />
-                  </div>
+          <div
+            className="modal-backdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.currentTarget === event.target) setShowStats(false);
+            }}
+          >
+            <section
+              className="stats-panel probability-modal"
+              id="probability-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="distribution-title"
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <div className="stats-heading">
+                <div>
+                  <p className="modal-overline">Probability analysis</p>
+                  <h2 id="distribution-title">How your results compare</h2>
+                  <p className="stats-description">
+                    Actual results are shown against the fair expected share for two numbers from 1 to 6.
+                  </p>
                 </div>
-              );
-            })}
+                <button
+                  type="button"
+                  className="modal-close"
+                  onClick={() => setShowStats(false)}
+                  aria-label="Close probability analysis"
+                >
+                  ×
+                </button>
+              </div>
 
-            <p className="stats-legend">Observed share / expected share</p>
-          </section>
+              <div className="probability-key" aria-label="Probability chart legend">
+                <div>
+                  <span className="key-swatch key-swatch-actual" aria-hidden="true" />
+                  <span><strong>Actual</strong> your results</span>
+                </div>
+                <div>
+                  <span className="key-swatch key-swatch-expected" aria-hidden="true" />
+                  <span><strong>Expected</strong> fair share</span>
+                </div>
+              </div>
+
+              {DISTRIBUTION_ORDER.map((value) => {
+                const count = tally[value] ?? 0;
+                const actualPct = (count / totalRolls) * 100;
+                const expectedPct = (EXPECTED[value] / 36) * 100;
+                const fillWidth = Math.min((actualPct / expectedPct) * 100, 100);
+
+                return (
+                  <div className="distribution-row" key={value} data-testid={`distribution-row-${value}`}>
+                    <div className="distribution-meta">
+                      <div className="distribution-total">
+                        <strong>{value}</strong>
+                        <span>{count} {count === 1 ? "result" : "results"}</span>
+                      </div>
+                      <span className="distribution-percentages">
+                        <b>{actualPct.toFixed(1)}% actual</b>
+                        <em>{expectedPct.toFixed(2)}% expected</em>
+                      </span>
+                    </div>
+                    <div
+                      className="distribution-track"
+                      aria-label={`Total ${value}: ${count} results, ${actualPct.toFixed(1)} percent actual, ${expectedPct.toFixed(2)} percent expected`}
+                    >
+                      <div className="distribution-expected" aria-hidden="true" />
+                      <div className="distribution-fill" style={{ width: `${fillWidth}%` }} aria-hidden="true" />
+                    </div>
+                  </div>
+                );
+              })}
+
+              <p className="stats-legend">The bar compares your observed share with the expected fair share.</p>
+            </section>
+          </div>
+        )}
+
+        {showResetConfirm && (
+          <div
+            className="modal-backdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.currentTarget === event.target) setShowResetConfirm(false);
+            }}
+          >
+            <section
+              className="confirm-dialog"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="reset-title"
+              aria-describedby="reset-description"
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <p className="modal-overline">Clear history</p>
+              <h2 id="reset-title">Reset your results?</h2>
+              <p id="reset-description">
+                This will clear the current numbers, recent results, and probability totals. This cannot be undone.
+              </p>
+              <div className="dialog-actions">
+                <button
+                  type="button"
+                  className="modal-secondary"
+                  onClick={() => setShowResetConfirm(false)}
+                >
+                  Keep history
+                </button>
+                <button type="button" className="modal-danger" onClick={resetHistory}>
+                  Reset history
+                </button>
+              </div>
+            </section>
+          </div>
         )}
 
       </div>
