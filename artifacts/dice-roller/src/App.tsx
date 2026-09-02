@@ -486,7 +486,7 @@ export default function App() {
                   <div className="analysis-stat">
                     <span>Most repeated</span>
                     <strong>
-                      {probabilitySummary.mostRepeatedTotals.map((value) => `Total ${value}`).join(" · ")}
+                      {probabilitySummary.mostRepeatedTotals.join(" · ")}
                     </strong>
                     <small>
                       {probabilitySummary.mostRepeatedCount}{" "}
@@ -496,7 +496,7 @@ export default function App() {
                   <div className="analysis-stat">
                     <span>Closest to expected</span>
                     <strong>
-                      {probabilitySummary.closestTotals.map(({ value }) => `Total ${value}`).join(" · ")}
+                      {probabilitySummary.closestTotals.map(({ value }) => value).join(" · ")}
                     </strong>
                     <small>
                       {probabilitySummary.closestTotals
