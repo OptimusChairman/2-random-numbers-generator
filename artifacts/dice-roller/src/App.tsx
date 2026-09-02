@@ -23,6 +23,82 @@ const EXPECTED: Record<number, number> = {
 const DISTRIBUTION_ORDER = [7, 6, 8, 5, 9, 4, 10, 3, 11, 2, 12];
 const GENERATION_DURATION_MS = 300;
 type Result = { pair: [number, number]; sum: number };
+type PersistedState = {
+  pair: [number, number] | null;
+  tally: Record<number, number>;
+  totalRolls: number;
+  recentResults: Result[];
+};
+const STORAGE_KEY = "two-number-generator-history";
+
+function isValidPair(value: unknown): value is [number, number] {
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    value.every((number) => Number.isInteger(number) && number >= 1 && number <= 6)
+  );
+}
+
+function isValidResult(value: unknown): value is Result {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as { pair?: unknown; sum?: unknown };
+  return (
+    isValidPair(candidate.pair) &&
+    Number.isInteger(candidate.sum) &&
+    candidate.sum === candidate.pair[0] + candidate.pair[1]
+  );
+}
+
+function loadPersistedState(): PersistedState | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as {
+      pair?: unknown;
+      tally?: unknown;
+      totalRolls?: unknown;
+      recentResults?: unknown;
+    };
+
+    if (
+      !(parsed.pair === null || isValidPair(parsed.pair)) ||
+      !Number.isInteger(parsed.totalRolls) ||
+      (parsed.totalRolls as number) < 0 ||
+      !parsed.tally ||
+      typeof parsed.tally !== "object" ||
+      Array.isArray(parsed.tally) ||
+      !Array.isArray(parsed.recentResults) ||
+      parsed.recentResults.length > 3 ||
+      !parsed.recentResults.every(isValidResult)
+    ) {
+      return null;
+    }
+
+    const tally: Record<number, number> = {};
+    for (const [key, value] of Object.entries(parsed.tally)) {
+      const total = Number(key);
+      if (!Number.isInteger(total) || total < 2 || total > 12 || !Number.isInteger(value) || value < 0) {
+        return null;
+      }
+      tally[total] = value;
+    }
+
+    const tallyTotal = Object.values(tally).reduce((sum, count) => sum + count, 0);
+    if (tallyTotal !== parsed.totalRolls) return null;
+
+    return {
+      pair: parsed.pair as [number, number] | null,
+      tally,
+      totalRolls: parsed.totalRolls as number,
+      recentResults: parsed.recentResults,
+    };
+  } catch {
+    return null;
+  }
+}
 
 function NumberNode({
   value,
@@ -63,11 +139,12 @@ function NumberPlaceholder({ index }: { index: "a" | "b" }) {
 }
 
 export default function App() {
-  const [pair, setPair] = useState<[number, number] | null>(null);
+  const [persistedState] = useState(loadPersistedState);
+  const [pair, setPair] = useState<[number, number] | null>(() => persistedState?.pair ?? null);
   const [rolling, setRolling] = useState(false);
-  const [tally, setTally] = useState<Record<number, number>>({});
-  const [totalRolls, setTotalRolls] = useState(0);
-  const [recentResults, setRecentResults] = useState<Result[]>([]);
+  const [tally, setTally] = useState<Record<number, number>>(() => persistedState?.tally ?? {});
+  const [totalRolls, setTotalRolls] = useState(() => persistedState?.totalRolls ?? 0);
+  const [recentResults, setRecentResults] = useState<Result[]>(() => persistedState?.recentResults ?? []);
   const [showStats, setShowStats] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -79,6 +156,17 @@ export default function App() {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ pair, tally, totalRolls, recentResults } satisfies PersistedState),
+      );
+    } catch {
+      // Storage can be unavailable in private browsing or restricted web views.
+    }
+  }, [pair, recentResults, tally, totalRolls]);
 
   useEffect(() => {
     if (!showStats && !showResetConfirm) return;
@@ -151,6 +239,11 @@ export default function App() {
     setRecentResults([]);
     setShowStats(false);
     setShowResetConfirm(false);
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // The cleared in-memory state remains available if storage is restricted.
+    }
   }, []);
 
   const sum = pair ? pair[0] + pair[1] : null;
