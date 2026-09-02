@@ -21,7 +21,7 @@ const EXPECTED: Record<number, number> = {
 };
 
 const DISTRIBUTION_ORDER = [7, 6, 8, 5, 9, 4, 10, 3, 11, 2, 12];
-const GENERATION_DURATION_MS = 480;
+const GENERATION_DURATION_MS = 300;
 type Result = { pair: [number, number]; sum: number };
 
 function NumberNode({
@@ -312,11 +312,14 @@ export default function App() {
               <div className="recent-list">
                 {recentResults.map(({ pair: recentPair, sum: recentSum }, index) => (
                   <div className="recent-result" key={`${recentPair[0]}-${recentPair[1]}-${index}`}>
-                    <span className="recent-result-index">0{index + 1}</span>
-                    <strong>
-                      {recentPair[0]} + {recentPair[1]}
-                    </strong>
-                    <span className="recent-result-total">= {recentSum}</span>
+                    <span className="recent-result-index">#0{index + 1}</span>
+                    <span className="recent-result-expression">
+                      <strong>
+                        {recentPair[0]} + {recentPair[1]}
+                      </strong>
+                      <span className="recent-result-equals">=</span>
+                      <strong className="recent-result-total">{recentSum}</strong>
+                    </span>
                   </div>
                 ))}
               </div>
