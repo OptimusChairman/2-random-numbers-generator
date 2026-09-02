@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // Select one of 36 equally likely pairs so every outcome remains fair.
 function generatePair(): [number, number] {
@@ -21,6 +21,7 @@ const EXPECTED: Record<number, number> = {
 };
 
 const DISTRIBUTION_ORDER = [7, 6, 8, 5, 9, 4, 10, 3, 11, 2, 12];
+const GENERATION_DURATION_MS = 480;
 type Result = { pair: [number, number]; sum: number };
 
 function NumberNode({
@@ -100,7 +101,7 @@ export default function App() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     setRolling(true);
-    const intervalMs = window.matchMedia("(hover: none) and (pointer: coarse)").matches ? 120 : 78;
+    const intervalMs = window.matchMedia("(hover: none) and (pointer: coarse)").matches ? 96 : 72;
     intervalRef.current = setInterval(() => {
       setPair(generatePair());
     }, intervalMs);
@@ -117,8 +118,31 @@ export default function App() {
       setTally((previous) => ({ ...previous, [sum]: (previous[sum] ?? 0) + 1 }));
       setTotalRolls((previous) => previous + 1);
       setRecentResults((previous) => [{ pair: result, sum }, ...previous].slice(0, 3));
-    }, 650);
+    }, GENERATION_DURATION_MS);
   }, [rolling]);
+
+  useEffect(() => {
+    const handleSpacebar = (event: KeyboardEvent) => {
+      if (event.code !== "Space" || event.repeat || showStats || showResetConfirm) return;
+
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.isContentEditable ||
+        target?.tagName === "BUTTON" ||
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.tagName === "SELECT"
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      generate();
+    };
+
+    document.addEventListener("keydown", handleSpacebar);
+    return () => document.removeEventListener("keydown", handleSpacebar);
+  }, [generate, showResetConfirm, showStats]);
 
   const resetHistory = useCallback(() => {
     setPair(null);
@@ -131,6 +155,38 @@ export default function App() {
 
   const sum = pair ? pair[0] + pair[1] : null;
   const statusText = rolling ? "Generating" : sum !== null ? "Latest result" : "Ready to generate";
+  const probabilitySummary = useMemo(() => {
+    if (totalRolls === 0) return null;
+
+    let mostRepeatedCount = -1;
+    const mostRepeatedTotals: number[] = [];
+    let closestDifference = Number.POSITIVE_INFINITY;
+    const closestTotals: Array<{ value: number; actual: number; expected: number }> = [];
+
+    for (let value = 2; value <= 12; value += 1) {
+      const count = tally[value] ?? 0;
+      if (count > mostRepeatedCount) {
+        mostRepeatedCount = count;
+        mostRepeatedTotals.length = 0;
+        mostRepeatedTotals.push(value);
+      } else if (count === mostRepeatedCount) {
+        mostRepeatedTotals.push(value);
+      }
+
+      const actual = (count / totalRolls) * 100;
+      const expected = (EXPECTED[value] / 36) * 100;
+      const difference = Math.abs(actual - expected);
+      if (difference < closestDifference) {
+        closestDifference = difference;
+        closestTotals.length = 0;
+        closestTotals.push({ value, actual, expected });
+      } else if (difference === closestDifference) {
+        closestTotals.push({ value, actual, expected });
+      }
+    }
+
+    return { mostRepeatedCount, mostRepeatedTotals, closestTotals };
+  }, [tally, totalRolls]);
 
   return (
     <main className="cosmos">
@@ -234,6 +290,9 @@ export default function App() {
           >
             {rolling ? "Generating" : pair ? "Generate again" : "Generate 2 numbers"}
           </button>
+          <p className="keyboard-hint">
+            Press <kbd>Space</kbd> to generate
+          </p>
 
           <div className="portal-foot">
             <span>{statusText}</span>
@@ -320,6 +379,37 @@ export default function App() {
                   ×
                 </button>
               </div>
+
+              {probabilitySummary && (
+                <div className="analysis-summary" aria-label="Probability summary">
+                  <div className="analysis-stat">
+                    <span>Total rolls</span>
+                    <strong>{totalRolls}</strong>
+                    <small>completed generations</small>
+                  </div>
+                  <div className="analysis-stat">
+                    <span>Most repeated</span>
+                    <strong>
+                      {probabilitySummary.mostRepeatedTotals.map((value) => `Total ${value}`).join(" · ")}
+                    </strong>
+                    <small>
+                      {probabilitySummary.mostRepeatedCount}{" "}
+                      {probabilitySummary.mostRepeatedCount === 1 ? "result" : "results"} each
+                    </small>
+                  </div>
+                  <div className="analysis-stat">
+                    <span>Closest to expected</span>
+                    <strong>
+                      {probabilitySummary.closestTotals.map(({ value }) => `Total ${value}`).join(" · ")}
+                    </strong>
+                    <small>
+                      {probabilitySummary.closestTotals
+                        .map(({ actual, expected }) => `${actual.toFixed(1)}% vs ${expected.toFixed(2)}%`)
+                        .join(" · ")}
+                    </small>
+                  </div>
+                </div>
+              )}
 
               <div className="probability-key" aria-label="Probability chart legend">
                 <div>
