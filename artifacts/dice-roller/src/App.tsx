@@ -247,7 +247,6 @@ export default function App() {
   }, []);
 
   const sum = pair ? pair[0] + pair[1] : null;
-  const statusText = rolling ? "Generating" : sum !== null ? "Latest result" : "Ready to generate";
   const probabilitySummary = useMemo(() => {
     if (totalRolls === 0) return null;
 
@@ -388,9 +387,8 @@ export default function App() {
           </p>
 
           <div className="portal-foot">
-            <span>{statusText}</span>
-            <span>
-              <strong>{totalRolls}</strong> {totalRolls === 1 ? "result" : "results"}
+            <span className="roll-count">
+              <strong>{totalRolls}</strong> {totalRolls === 1 ? "roll" : "rolls"}
             </span>
           </div>
         </section>

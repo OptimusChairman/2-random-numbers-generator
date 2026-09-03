@@ -794,7 +794,7 @@
 
 .portal-foot {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   gap: 16px;
   margin-top: 24px;
   color: rgba(206, 210, 230, .42);
@@ -803,7 +803,18 @@
   letter-spacing: .06em;
 }
 
-.portal-foot strong { color: rgba(190, 220, 255, .84); font-weight: 500; }
+.roll-count {
+  color: rgba(178, 212, 255, .62);
+  letter-spacing: .1em;
+}
+
+.roll-count strong {
+  color: #b9d9ff;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+}
 
 .recent-results {
   width: min(100%, 860px);
