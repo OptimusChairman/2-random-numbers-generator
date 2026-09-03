@@ -462,9 +462,6 @@ export default function App() {
           >
             {rolling ? "Generating" : pair ? "Generate again" : "Generate 2 numbers"}
           </button>
-          <p className="keyboard-hint">
-            Press <kbd>Space</kbd> to generate
-          </p>
 
           <div className="portal-foot">
             <span className="roll-count">
