@@ -22,12 +22,24 @@ const EXPECTED: Record<number, number> = {
 
 const DISTRIBUTION_ORDER = [7, 6, 8, 5, 9, 4, 10, 3, 11, 2, 12];
 const GENERATION_DURATION_MS = 300;
+const SANITY_CHECK_ROLLS = 100_000;
+const SANITY_RECHECK_ROLLS = 200_000;
+const SANITY_VARIANCE_LIMIT = 1.5;
 type Result = { pair: [number, number]; sum: number };
 type PersistedState = {
   pair: [number, number] | null;
   tally: Record<number, number>;
   totalRolls: number;
   recentResults: Result[];
+};
+type SanityResult = {
+  rolls: number;
+  passed: boolean;
+  isRecheck: boolean;
+  worstTotal: number;
+  maxDifference: number;
+  actualPct: number;
+  expectedPct: number;
 };
 const STORAGE_KEY = "two-number-generator-history";
 
@@ -147,13 +159,17 @@ export default function App() {
   const [recentResults, setRecentResults] = useState<Result[]>(() => persistedState?.recentResults ?? []);
   const [showStats, setShowStats] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [sanityRunning, setSanityRunning] = useState(false);
+  const [sanityResult, setSanityResult] = useState<SanityResult | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sanityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (sanityTimeoutRef.current) clearTimeout(sanityTimeoutRef.current);
     };
   }, []);
 
@@ -245,6 +261,70 @@ export default function App() {
       // The cleared in-memory state remains available if storage is restricted.
     }
   }, []);
+
+  const runSanityCheck = useCallback(
+    (isRecheck = false) => {
+      if (sanityRunning) return;
+
+      const rolls = isRecheck ? SANITY_RECHECK_ROLLS : SANITY_CHECK_ROLLS;
+      const sanityTally: Record<number, number> = {};
+      let completed = 0;
+      const chunkSize = 5_000;
+
+      setSanityRunning(true);
+      setSanityResult(null);
+
+      const processChunk = () => {
+        const chunkEnd = Math.min(completed + chunkSize, rolls);
+        for (; completed < chunkEnd; completed += 1) {
+          const result = generatePair();
+          const resultSum = result[0] + result[1];
+          sanityTally[resultSum] = (sanityTally[resultSum] ?? 0) + 1;
+        }
+
+        if (completed < rolls) {
+          sanityTimeoutRef.current = setTimeout(processChunk, 0);
+          return;
+        }
+
+        let maxDifference = -1;
+        let worstTotal = 7;
+        let worstActual = 0;
+        let worstExpected = 0;
+
+        for (let value = 2; value <= 12; value += 1) {
+          const actual = ((sanityTally[value] ?? 0) / rolls) * 100;
+          const expected = (EXPECTED[value] / 36) * 100;
+          const difference = Math.abs(actual - expected);
+          if (difference > maxDifference) {
+            maxDifference = difference;
+            worstTotal = value;
+            worstActual = actual;
+            worstExpected = expected;
+          }
+        }
+
+        sanityTimeoutRef.current = null;
+        setSanityResult({
+          rolls,
+          passed: maxDifference <= SANITY_VARIANCE_LIMIT,
+          isRecheck,
+          worstTotal,
+          maxDifference,
+          actualPct: worstActual,
+          expectedPct: worstExpected,
+        });
+        setSanityRunning(false);
+      };
+
+      sanityTimeoutRef.current = setTimeout(processChunk, 0);
+    },
+    [sanityRunning],
+  );
+
+  const handleSanityFix = useCallback(() => {
+    runSanityCheck(true);
+  }, [runSanityCheck]);
 
   const sum = pair ? pair[0] + pair[1] : null;
   const probabilitySummary = useMemo(() => {
@@ -392,6 +472,62 @@ export default function App() {
             </span>
           </div>
         </section>
+
+        <div className="sanity-action">
+          <button
+            type="button"
+            className="sanity-check-button"
+            onClick={() => runSanityCheck()}
+            disabled={sanityRunning}
+            aria-label={sanityRunning ? "Checking 100,000 simulated rolls" : "Run sanity check"}
+          >
+            {sanityRunning ? "Checking 100,000 rolls…" : "Run sanity check"}
+          </button>
+          <span>Diagnostic only · saved history stays unchanged</span>
+        </div>
+
+        {sanityResult && (
+          <aside
+            className={`sanity-popup ${sanityResult.passed ? "is-passed" : "is-warning"}`}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="sanity-popup-heading">
+              <div>
+                <p className="modal-overline">{sanityResult.passed ? "Check passed" : "Large variance detected"}</p>
+                <h2>Probability sanity check</h2>
+              </div>
+              <button
+                type="button"
+                className="sanity-popup-close"
+                onClick={() => setSanityResult(null)}
+                aria-label="Dismiss sanity check results"
+              >
+                ×
+              </button>
+            </div>
+            <p className="sanity-popup-detail">
+              {sanityResult.rolls.toLocaleString()} simulated rolls · largest gap{" "}
+              <strong>{sanityResult.maxDifference.toFixed(2)} percentage points</strong>
+            </p>
+            <p className="sanity-popup-detail">
+              Number {sanityResult.worstTotal}: {sanityResult.actualPct.toFixed(2)}% actual vs{" "}
+              {sanityResult.expectedPct.toFixed(2)}% expected
+            </p>
+            {sanityResult.passed ? (
+              <p className="sanity-popup-note">The distribution is within the expected variance.</p>
+            ) : (
+              <>
+                <p className="sanity-popup-note">
+                  Recheck before treating this as a generator issue. This will not change your saved history.
+                </p>
+                <button type="button" className="sanity-fix-button" onClick={handleSanityFix}>
+                  Fix &amp; recheck
+                </button>
+              </>
+            )}
+          </aside>
+        )}
 
         {totalRolls > 0 && (
           <>
