@@ -6,9 +6,25 @@ id = "AUUX9Vl3K6vdUdf773vtl"
 uri = "file://alternative-for-dice-prompt.pdf"
 type = "pdf"
 title = "Alternative for Dice — Full Rebuild Prompt (Final)"
+logical_id = "d09c5a96-7865-4855-bd71-b259c162abc5"
 
 [[outputs]]
 id = "k6yJMl-b-2nNp54145Iyl"
 uri = "file://dice-roller-prompt.pdf"
 type = "pdf"
 title = "2 Random Numbers Generator — Full Rebuild Prompt"
+logical_id = "fe816fe2-039f-4a8d-af84-ed07345ceef7"
+
+[[outputs]]
+id = "BTdM_ktkd7VNr5qaTM51f"
+uri = "file://artifacts/dice-roller/downloads/two-number-generator-v2-exact-code-reference.pdf"
+type = "pdf"
+title = "Two-Number Generator 2.0 — Exact Code Reference"
+description = "Downloadable 35-page PDF containing the latest React source, CSS, configuration, behavior contract, binary asset manifest, and SHA-256 verification hashes."
+logical_id = "54809939-746b-4506-b076-83c9245c73a7"
+content_hash = "sha256:79343838ac94fa5de7bc543ac56df040932b4e2f77b0afd244d47c9beed25a97"
+size = 1430259
+mtime_ms = 1788455966639
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:d47455b5-20b8-4e24-8909-a75dc2d6254b/54809939-746b-4506-b076-83c9245c73a7/c3208715-55d5-4d4e-a1d9-3abe7ec00b5c"
+storage_version_token = "1788456061657497"
+content_type = "application/pdf"
