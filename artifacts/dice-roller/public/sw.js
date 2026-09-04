@@ -1,9 +1,11 @@
-const CACHE_NAME = "two-number-generator-v2";
+const CACHE_NAME = "two-number-generator-v3";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/manifest.webmanifest",
   "/favicon.png",
+  "/icons/icon-16.png",
+  "/icons/icon-32.png",
   "/icons/icon-180.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
