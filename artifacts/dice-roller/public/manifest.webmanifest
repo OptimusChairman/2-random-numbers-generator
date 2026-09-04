@@ -1,0 +1,27 @@
+{
+  "name": "Two-Number Generator 2.0",
+  "short_name": "Number Generator",
+  "description": "Generate two random numbers between 1 and 6 with a cinematic cosmic interface.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#050918",
+  "theme_color": "#071126",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

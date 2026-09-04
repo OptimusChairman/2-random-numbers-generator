@@ -389,7 +389,7 @@ export default function App() {
             <span>{rolling ? "Generating" : "Ready"}</span>
           </div>
 
-          <div className={`number-stage ${rolling ? "is-charged" : ""}`} aria-live="polite" aria-atomic="true">
+          <div className={`number-stage ${rolling ? "is-charged" : ""}`}>
             <div className="energy-field" aria-hidden="true">
               <span className="energy-halo halo-one" />
               <span className="energy-halo halo-two" />
@@ -422,7 +422,8 @@ export default function App() {
 
           <div
             className={`result-band ${rolling ? "is-rolling" : ""} ${sum !== null && !rolling ? "is-final" : ""}`}
-            role="status"
+            role="group"
+            aria-label="Current result"
             data-testid="status-result"
           >
             {rolling ? (
@@ -451,6 +452,13 @@ export default function App() {
               </>
             )}
           </div>
+          <p className="sr-only" aria-live="polite" aria-atomic="true">
+            {rolling
+              ? "Generating two numbers."
+              : pair && sum !== null
+                ? `Generated ${pair[0]} and ${pair[1]}. Total ${sum}.`
+                : ""}
+          </p>
 
           <button
             type="button"
@@ -518,8 +526,13 @@ export default function App() {
                 <p className="sanity-popup-note">
                   Recheck before treating this as a generator issue. This will not change your saved history.
                 </p>
-                <button type="button" className="sanity-fix-button" onClick={handleSanityFix}>
-                  Fix &amp; recheck
+                <button
+                  type="button"
+                  className="sanity-fix-button"
+                  onClick={handleSanityFix}
+                  aria-label="Recheck with 200,000 simulated rolls"
+                >
+                  Recheck with 200,000 rolls
                 </button>
               </>
             )}
@@ -570,6 +583,7 @@ export default function App() {
                 Reset history
               </button>
             </div>
+            <p className="local-history-note">History is saved on this device only.</p>
           </>
         )}
 
