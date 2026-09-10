@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-// --- SHUFFLED POOL LOGIC FOR BALANCED SHORT SESSIONS (~400-500 rolls) ---
-// Instead of independent random rolls that can feel "streaky" in small samples,
-// we create a balanced pool of all 36 possible pairs, repeat it to match your 
-// session size, and shuffle it.
+// --- SHUFFLED POOL LOGIC FOR BALANCED SHORT SESSIONS (~200 rolls) ---
+// We create a balanced pool of all 36 possible pairs, repeat it 6 times for ~216 rolls,
+// and shuffle it to prevent long dry spells or extreme streaks in short sessions.
 let pairPool: [number, number][] = [];
 
 function getBalancedPairPool(): [number, number][] {
@@ -14,9 +13,8 @@ function getBalancedPairPool(): [number, number][] {
         basePairs.push([i, j]);
       }
     }
-    // Repeat the 36 items ~12 times to create a pool of 432 rolls,
-    // which hits right inside your 400-500 session target size!
-    for (let cycle = 0; cycle < 12; cycle++) {
+    // Repeat the 36 items 6 times to create a pool of 216 rolls (ideal for 200-roll sessions)
+    for (let cycle = 0; cycle < 6; cycle++) {
       pairPool.push(...basePairs);
     }
     // Shuffle the pool randomly
