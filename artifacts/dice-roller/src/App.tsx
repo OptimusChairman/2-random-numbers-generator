@@ -1,9 +1,39 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-// Select one of 36 equally likely pairs so every outcome remains fair.
+// --- SHUFFLED POOL LOGIC FOR BALANCED SHORT SESSIONS (~400-500 rolls) ---
+// Instead of independent random rolls that can feel "streaky" in small samples,
+// we create a balanced pool of all 36 possible pairs, repeat it to match your 
+// session size, and shuffle it.
+let pairPool: [number, number][] = [];
+
+function getBalancedPairPool(): [number, number][] {
+  if (pairPool.length === 0) {
+    const basePairs: [number, number][] = [];
+    for (let i = 1; i <= 6; i++) {
+      for (let j = 1; j <= 6; j++) {
+        basePairs.push([i, j]);
+      }
+    }
+    // Repeat the 36 items ~12 times to create a pool of 432 rolls,
+    // which hits right inside your 400-500 session target size!
+    for (let cycle = 0; cycle < 12; cycle++) {
+      pairPool.push(...basePairs);
+    }
+    // Shuffle the pool randomly
+    pairPool.sort(() => Math.random() - 0.5);
+  }
+  return pairPool;
+}
+
+// Select from our balanced pool so every session remains fair and smooth.
 function generatePair(): [number, number] {
-  const outcome = Math.floor(Math.random() * 36);
-  return [Math.floor(outcome / 6) + 1, (outcome % 6) + 1];
+  const pool = getBalancedPairPool();
+  // If the pool somehow empties, reset it
+  if (pool.length === 0) {
+    pairPool = [];
+    return generatePair();
+  }
+  return pool.pop() as [number, number];
 }
 
 const EXPECTED: Record<number, number> = {
