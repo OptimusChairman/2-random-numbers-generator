@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-// --- SHUFFLED POOL LOGIC FOR BALANCED SHORT SESSIONS (~200 rolls) ---
-// We create a balanced pool of all 36 possible pairs, repeat it 6 times for ~216 rolls,
-// and shuffle it to prevent long dry spells or extreme streaks in short sessions.
+// --- TRUE FISHER-YATES UNBIASED POOL LOGIC (~200 ROLLS) ---
 let pairPool: [number, number][] = [];
+
+// Fisher-Yates shuffle ensures mathematically uniform distribution across the pool
+function fisherYatesShuffle(array: [number, number][]) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
 
 function getBalancedPairPool(): [number, number][] {
   if (pairPool.length === 0) {
@@ -17,8 +24,8 @@ function getBalancedPairPool(): [number, number][] {
     for (let cycle = 0; cycle < 6; cycle++) {
       pairPool.push(...basePairs);
     }
-    // Shuffle the pool randomly
-    pairPool.sort(() => Math.random() - 0.5);
+    // Apply proper unbiased shuffling
+    fisherYatesShuffle(pairPool);
   }
   return pairPool;
 }
