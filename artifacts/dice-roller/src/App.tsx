@@ -1,12 +1,45 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-// --- TRUE REAL-LIFE DICE PHYSICS ---
-// Every roll is completely independent, just like real dice in the physical world.
-// No memory, no artificial caps, and true statistical variance.
+// --- THE OVERSIZED POOL ("CASINO SHOE") METHOD ---
+// We create a massive pool of 1,080 rolls (36 pairs x 30 cycles). 
+// This acts as a statistical shock absorber: it prevents extreme game-ruining 
+// streaks while making card-counting mathematically impossible for short 200-roll sessions.
+let pairPool: [number, number][] = [];
+
+// Fisher-Yates shuffle ensures true, unbiased randomization across the massive pool
+function fisherYatesShuffle(array: [number, number][]) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function getBalancedPairPool(): [number, number][] {
+  if (pairPool.length === 0) {
+    const basePairs: [number, number][] = [];
+    for (let i = 1; i <= 6; i++) {
+      for (let j = 1; j <= 6; j++) {
+        basePairs.push([i, j]);
+      }
+    }
+    // Repeat the 36 items 30 times to create a massive pool of 1,080 rolls
+    for (let cycle = 0; cycle < 30; cycle++) {
+      pairPool.push(...basePairs);
+    }
+    fisherYatesShuffle(pairPool);
+  }
+  return pairPool;
+}
+
+// Select from our balanced pool so every session remains fair and unpredictable.
 function generatePair(): [number, number] {
-  const die1 = Math.floor(Math.random() * 6) + 1;
-  const die2 = Math.floor(Math.random() * 6) + 1;
-  return [die1, die2];
+  const pool = getBalancedPairPool();
+  if (pool.length === 0) {
+    pairPool = [];
+    return generatePair();
+  }
+  return pool.pop() as [number, number];
 }
 
 const EXPECTED: Record<number, number> = {
