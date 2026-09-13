@@ -1,44 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-// --- TRUE FISHER-YATES UNBIASED POOL LOGIC (~200 ROLLS) ---
-let pairPool: [number, number][] = [];
-
-// Fisher-Yates shuffle ensures mathematically uniform distribution across the pool
-function fisherYatesShuffle(array: [number, number][]) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
-function getBalancedPairPool(): [number, number][] {
-  if (pairPool.length === 0) {
-    const basePairs: [number, number][] = [];
-    for (let i = 1; i <= 6; i++) {
-      for (let j = 1; j <= 6; j++) {
-        basePairs.push([i, j]);
-      }
-    }
-    // Repeat the 36 items 6 times to create a pool of 216 rolls (ideal for 200-roll sessions)
-    for (let cycle = 0; cycle < 6; cycle++) {
-      pairPool.push(...basePairs);
-    }
-    // Apply proper unbiased shuffling
-    fisherYatesShuffle(pairPool);
-  }
-  return pairPool;
-}
-
-// Select from our balanced pool so every session remains fair and smooth.
+// --- TRUE REAL-LIFE DICE PHYSICS ---
+// Every roll is completely independent, just like real dice in the physical world.
+// No memory, no artificial caps, and true statistical variance.
 function generatePair(): [number, number] {
-  const pool = getBalancedPairPool();
-  // If the pool somehow empties, reset it
-  if (pool.length === 0) {
-    pairPool = [];
-    return generatePair();
-  }
-  return pool.pop() as [number, number];
+  const die1 = Math.floor(Math.random() * 6) + 1;
+  const die2 = Math.floor(Math.random() * 6) + 1;
+  return [die1, die2];
 }
 
 const EXPECTED: Record<number, number> = {
