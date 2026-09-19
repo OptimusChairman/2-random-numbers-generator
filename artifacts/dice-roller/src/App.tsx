@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // --- THE OVERSIZED POOL ("CASINO SHOE") METHOD ---
-// We create a massive pool of 1,080 rolls (36 pairs x 30 cycles). 
+// We create a massive pool of 540 rolls (36 pairs x 15 cycles). 
 // This acts as a statistical shock absorber: it prevents extreme game-ruining 
 // streaks while making card-counting mathematically impossible for short 200-roll sessions.
 let pairPool: [number, number][] = [];
@@ -23,8 +23,8 @@ function getBalancedPairPool(): [number, number][] {
         basePairs.push([i, j]);
       }
     }
-    // Repeat the 36 items 30 times to create a massive pool of 1,080 rolls
-    for (let cycle = 0; cycle < 30; cycle++) {
+    // Repeat the 36 items 15 times to create a massive pool of 540 rolls
+    for (let cycle = 0; cycle < 15; cycle++) {
       pairPool.push(...basePairs);
     }
     fisherYatesShuffle(pairPool);
