@@ -22,6 +22,20 @@ export const POOL_SIZE = BASE_PAIR_COUNT * POOL_CYCLES; // 540
 export const CUT_FRACTION = 0.75;
 export const CUT_AFTER = Math.floor(POOL_SIZE * CUT_FRACTION); // 405
 
+/**
+ * How many of the 540 pool results land on each total (2-12). The pool holds all
+ * 36 ordered pairs 15 times each, so a total's count is (ways to make it) x 15,
+ * which follows the real odds exactly: 7 appears 90 times (6/36 = 16.67%), 6 and 8
+ * 75 times (13.89%), down to 2 and 12 at 15 times (2.78%).
+ */
+export const POOL_TOTAL_COUNTS: Readonly<Record<number, number>> = (() => {
+  const counts: Record<number, number> = {};
+  for (let a = 1; a <= 6; a += 1) {
+    for (let b = 1; b <= 6; b += 1) counts[a + b] = (counts[a + b] ?? 0) + POOL_CYCLES;
+  }
+  return counts;
+})();
+
 const UINT32_RANGE = 0x1_0000_0000;
 
 /**

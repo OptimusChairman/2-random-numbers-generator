@@ -4,6 +4,7 @@ import {
   CUT_AFTER,
   POOL_CYCLES,
   POOL_SIZE,
+  POOL_TOTAL_COUNTS,
   cosmeticPair,
   createGenerator,
   cryptoRandomInt,
@@ -91,6 +92,32 @@ describe("balanced mode (540 pool)", () => {
     const counts = new Array<number>(BASE_PAIR_COUNT).fill(0);
     for (const index of shoe!.pool) counts[index] += 1;
     expect(counts.every((count) => count === POOL_CYCLES)).toBe(true);
+  });
+
+  it("makes totals appear in exactly the real odds (2.78% up to 16.67%)", () => {
+    const expectedPct: Record<number, string> = {
+      2: "2.78", 3: "5.56", 4: "8.33", 5: "11.11", 6: "13.89", 7: "16.67",
+      8: "13.89", 9: "11.11", 10: "8.33", 11: "5.56", 12: "2.78",
+    };
+
+    // Count totals across a real shuffled pool (all 540 stored indexes, not just the dealt ones).
+    const generator = createGenerator({ mode: "balanced", randomInt: seededRandomInt(42) });
+    generator.next();
+    const totals = new Array<number>(13).fill(0);
+    for (const index of generator.serializeShoe()!.pool) {
+      totals[Math.floor(index / 6) + 1 + ((index % 6) + 1)] += 1;
+    }
+
+    let sum = 0;
+    for (let total = 2; total <= 12; total += 1) {
+      expect(totals[total]).toBe(POOL_TOTAL_COUNTS[total]);
+      expect(((totals[total] / POOL_SIZE) * 100).toFixed(2)).toBe(expectedPct[total]);
+      sum += totals[total];
+    }
+    expect(sum).toBe(POOL_SIZE);
+    expect(POOL_TOTAL_COUNTS[7]).toBe(90);
+    expect(POOL_TOTAL_COUNTS[2]).toBe(15);
+    expect(POOL_TOTAL_COUNTS[12]).toBe(15);
   });
 
   it("only returns pairs with values 1-6", () => {

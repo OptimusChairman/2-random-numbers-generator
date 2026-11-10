@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CUT_AFTER,
   POOL_SIZE,
+  POOL_TOTAL_COUNTS,
   cosmeticPair,
   createGenerator,
   isValidShoeState,
@@ -517,9 +518,23 @@ export default function App() {
           </div>
           <p className="mode-hint">
             {mode === "balanced"
-              ? `A shuffled pool of ${POOL_SIZE} pairs (every pair 15 times), reshuffled after ${CUT_AFTER}. Smooths long streaks.`
+              ? `A shuffled pool of ${POOL_SIZE} results that follows the real odds (a 7 appears ${POOL_TOTAL_COUNTS[7]} times, a 2 or 12 only ${POOL_TOTAL_COUNTS[2]}), reshuffled after ${CUT_AFTER}. Smooths long streaks.`
               : "Two fresh, independent draws every time. Long streaks can and do happen."}
           </p>
+          {mode === "balanced" && (
+            <details className="pool-details">
+              <summary>See what is in the pool</summary>
+              <ul className="pool-makeup" aria-label="Pool makeup by total">
+                {SUM_VALUES.map((value) => (
+                  <li key={value}>
+                    <strong>{value}</strong>
+                    <span>{POOL_TOTAL_COUNTS[value]} of {POOL_SIZE}</span>
+                    <em>{(expectedShare(value) * 100).toFixed(2)}%</em>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
           {mode === "balanced" && (
             <div
               className="shoe-meter"

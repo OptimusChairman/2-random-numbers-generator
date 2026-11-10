@@ -1729,6 +1729,44 @@
   text-align: center;
 }
 
+.pool-details { max-width: 420px; margin: -4px auto 14px; }
+.pool-details summary {
+  width: fit-content;
+  margin: 0 auto;
+  color: rgba(176, 208, 255, .75);
+  cursor: pointer;
+  font-family: var(--app-font-mono);
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-decoration: underline;
+  text-decoration-color: rgba(176, 208, 255, .3);
+  text-underline-offset: 3px;
+}
+.pool-details summary:focus-visible { outline: 3px solid rgba(180, 220, 255, .8); outline-offset: 4px; }
+.pool-makeup {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pool-makeup li {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 9px;
+  border: 1px solid rgba(184, 207, 246, .14);
+  border-radius: 9px;
+  background: rgba(8, 14, 38, .5);
+  font-family: var(--app-font-mono);
+  font-size: 9px;
+}
+.pool-makeup strong { color: #edf5ff; font-family: "Space Grotesk", sans-serif; font-size: 13px; font-weight: 600; }
+.pool-makeup span { color: rgba(205, 220, 244, .6); }
+.pool-makeup em { color: #9ccbff; font-style: normal; }
+
 .shoe-meter {
   display: flex;
   flex-direction: column;
