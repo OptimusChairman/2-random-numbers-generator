@@ -1847,6 +1847,19 @@
   .number-node-b.is-charged .number-glyph { text-shadow: none; }
 }
 
+/* Very small phones (320-380px): smaller number circles and a thinner special-result ring,
+   so the two circles never touch each other or get clipped at the card edge. */
+@media (max-width: 380px) {
+  .number-stage { gap: 14px; }
+  .number-node { min-width: 0; }
+  .number-value { width: 100px; height: 100px; font-size: 3.7rem; }
+  .number-stage.is-peak .number-value,
+  .number-stage.is-mirror .number-value,
+  .number-stage.is-rare .number-value {
+    box-shadow: 0 12px 25px rgba(3, 4, 15, .34), 0 0 0 3px var(--aura-glow), 0 0 28px var(--aura-glow), inset 0 1px rgba(255, 255, 255, .2);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .shockwave,
   .aura-ring { display: none; }
