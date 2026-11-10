@@ -1487,6 +1487,12 @@
 
 .hero h1 { color: #f1f5ff; }
 .hero h1 em {
+  /* Same background-clip fix as .number-glyph: tight negative tracking pushes the final
+     glyph (the period) outside the text box, so pad the painted area and cancel it. */
+  padding: .05em .12em;
+  margin: -.05em -.12em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
   background: linear-gradient(100deg, #ffffff 0%, #c9dcff 38%, #8f9bff 74%, #dfe9ff 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -1592,6 +1598,12 @@
 
 .number-glyph {
   display: block;
+  /* `background-clip: text` only paints inside the element's own box, and the numbers use
+     tight negative letter-spacing and indent, so their ink pokes out past that box and got
+     sliced into flat vertical walls. Extra padding enlarges the painted area; the equal
+     negative margin keeps layout and centering exactly as before. */
+  padding: .1em .28em;
+  margin: -.1em -.28em;
   background: linear-gradient(180deg, #ffffff 0%, #d6e1ff 46%, #8a9bff 100%);
   -webkit-background-clip: text;
   background-clip: text;
