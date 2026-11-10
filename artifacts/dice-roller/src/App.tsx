@@ -1,85 +1,48 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-// --- THE OVERSIZED POOL ("CASINO SHOE") METHOD ---
-// We create a massive pool of 540 rolls (36 pairs x 15 cycles). 
-// This acts as a statistical shock absorber: it prevents extreme game-ruining 
-// streaks while making card-counting mathematically impossible for short 200-roll sessions.
-let pairPool: [number, number][] = [];
-
-// Fisher-Yates shuffle ensures true, unbiased randomization across the massive pool
-function fisherYatesShuffle(array: [number, number][]) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
-function getBalancedPairPool(): [number, number][] {
-  if (pairPool.length === 0) {
-    const basePairs: [number, number][] = [];
-    for (let i = 1; i <= 6; i++) {
-      for (let j = 1; j <= 6; j++) {
-        basePairs.push([i, j]);
-      }
-    }
-    // Repeat the 36 items 15 times to create a massive pool of 540 rolls
-    for (let cycle = 0; cycle < 15; cycle++) {
-      pairPool.push(...basePairs);
-    }
-    fisherYatesShuffle(pairPool);
-  }
-  return pairPool;
-}
-
-// Select from our balanced pool so every session remains fair and unpredictable.
-function generatePair(): [number, number] {
-  const pool = getBalancedPairPool();
-  if (pool.length === 0) {
-    pairPool = [];
-    return generatePair();
-  }
-  return pool.pop() as [number, number];
-}
-
-const EXPECTED: Record<number, number> = {
-  2: 1,
-  3: 2,
-  4: 3,
-  5: 4,
-  6: 5,
-  7: 6,
-  8: 5,
-  9: 4,
-  10: 3,
-  11: 2,
-  12: 1,
-};
+import {
+  CUT_AFTER,
+  POOL_SIZE,
+  cosmeticPair,
+  createGenerator,
+  isValidShoeState,
+  type Generator,
+  type GeneratorMode,
+  type Pair,
+  type ShoeState,
+  type ShoeStatus,
+} from "./lib/generator";
+import {
+  SUM_VALUES,
+  expectedShare,
+  runSanityCheck,
+  variationBand,
+  type SanityReport,
+} from "./lib/stats";
+import type { SanityWorkerRequest, SanityWorkerResponse } from "./lib/sanity.worker";
+import { playCharge, playLockIn } from "./lib/sound";
 
 const DISTRIBUTION_ORDER = [7, 6, 8, 5, 9, 4, 10, 3, 11, 2, 12];
 const GENERATION_DURATION_MS = 300;
 const SANITY_CHECK_ROLLS = 100_000;
 const SANITY_RECHECK_ROLLS = 200_000;
-const SANITY_VARIANCE_LIMIT = 1.5;
-type Result = { pair: [number, number]; sum: number };
+/** Below this many results the tracker bars swing a lot, even for a fair generator. */
+const SMALL_SAMPLE = 300;
+const PHASES = ["Focusing", "Aligning", "Locking in"] as const;
+const STORAGE_KEY = "two-number-generator-history";
+const SOUND_KEY = "two-number-generator-sound";
+
+type Result = { pair: Pair; sum: number };
 type PersistedState = {
-  pair: [number, number] | null;
+  pair: Pair | null;
   tally: Record<number, number>;
   totalRolls: number;
   recentResults: Result[];
+  mode: GeneratorMode;
+  shoe: ShoeState | null;
 };
-type SanityResult = {
-  rolls: number;
-  passed: boolean;
-  isRecheck: boolean;
-  worstTotal: number;
-  maxDifference: number;
-  actualPct: number;
-  expectedPct: number;
-};
-const STORAGE_KEY = "two-number-generator-history";
+type ResultTag = { label: string; odds: string; tone: "mirror" | "peak" | "rare" };
 
-function isValidPair(value: unknown): value is [number, number] {
+function isValidPair(value: unknown): value is Pair {
   return (
     Array.isArray(value) &&
     value.length === 2 &&
@@ -109,6 +72,8 @@ function loadPersistedState(): PersistedState | null {
       tally?: unknown;
       totalRolls?: unknown;
       recentResults?: unknown;
+      mode?: unknown;
+      shoe?: unknown;
     };
 
     if (
@@ -138,14 +103,36 @@ function loadPersistedState(): PersistedState | null {
     if (tallyTotal !== parsed.totalRolls) return null;
 
     return {
-      pair: parsed.pair as [number, number] | null,
+      pair: parsed.pair as Pair | null,
       tally,
       totalRolls: parsed.totalRolls as number,
       recentResults: parsed.recentResults,
+      // Saves from before the mode toggle have neither field: they used the balanced pool.
+      mode: parsed.mode === "pure" ? "pure" : "balanced",
+      shoe: isValidShoeState(parsed.shoe) ? parsed.shoe : null,
     };
   } catch {
     return null;
   }
+}
+
+function loadSoundPreference(): boolean {
+  try {
+    return window.localStorage.getItem(SOUND_KEY) === "on";
+  } catch {
+    return false;
+  }
+}
+
+function describeResult(pair: Pair | null): ResultTag[] {
+  if (!pair) return [];
+  const [a, b] = pair;
+  const total = a + b;
+  const tags: ResultTag[] = [];
+  if (total === 2 || total === 12) tags.push({ label: "Rare edge", odds: "1 in 36", tone: "rare" });
+  if (a === b) tags.push({ label: "Mirror pair", odds: "1 in 6", tone: "mirror" });
+  if (total === 7) tags.push({ label: "Peak odds", odds: "1 in 6", tone: "peak" });
+  return tags;
 }
 
 function NumberNode({
@@ -165,7 +152,7 @@ function NumberNode({
         aria-label={`Number ${index.toUpperCase()} is ${value}`}
         data-testid={`text-number-${index}`}
       >
-        {value}
+        <span className="number-glyph">{value}</span>
       </output>
     </div>
   );
@@ -188,24 +175,41 @@ function NumberPlaceholder({ index }: { index: "a" | "b" }) {
 
 export default function App() {
   const [persistedState] = useState(loadPersistedState);
-  const [pair, setPair] = useState<[number, number] | null>(() => persistedState?.pair ?? null);
+  const [pair, setPair] = useState<Pair | null>(() => persistedState?.pair ?? null);
   const [rolling, setRolling] = useState(false);
+  const [phase, setPhase] = useState(0);
   const [tally, setTally] = useState<Record<number, number>>(() => persistedState?.tally ?? {});
   const [totalRolls, setTotalRolls] = useState(() => persistedState?.totalRolls ?? 0);
   const [recentResults, setRecentResults] = useState<Result[]>(() => persistedState?.recentResults ?? []);
+  const [mode, setMode] = useState<GeneratorMode>(() => persistedState?.mode ?? "balanced");
+  const [rollKey, setRollKey] = useState(0);
+  const [soundOn, setSoundOn] = useState(loadSoundPreference);
   const [showStats, setShowStats] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [sanityRunning, setSanityRunning] = useState(false);
-  const [sanityResult, setSanityResult] = useState<SanityResult | null>(null);
+  const [sanityProgress, setSanityProgress] = useState(0);
+  const [sanityResult, setSanityResult] = useState<SanityReport | null>(null);
+
+  const generatorRef = useRef<Generator | null>(null);
+  if (generatorRef.current === null) {
+    generatorRef.current = createGenerator({
+      mode: persistedState?.mode ?? "balanced",
+      shoe: persistedState?.shoe,
+    });
+  }
+  const [shoeStatus, setShoeStatus] = useState<ShoeStatus>(() => generatorRef.current!.shoeStatus());
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sanityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       if (sanityTimeoutRef.current) clearTimeout(sanityTimeoutRef.current);
+      workerRef.current?.terminate();
     };
   }, []);
 
@@ -213,12 +217,19 @@ export default function App() {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ pair, tally, totalRolls, recentResults } satisfies PersistedState),
+        JSON.stringify({
+          pair,
+          tally,
+          totalRolls,
+          recentResults,
+          mode,
+          shoe: generatorRef.current?.serializeShoe() ?? null,
+        } satisfies PersistedState),
       );
     } catch {
       // Storage can be unavailable in private browsing or restricted web views.
     }
-  }, [pair, recentResults, tally, totalRolls]);
+  }, [mode, pair, recentResults, tally, totalRolls]);
 
   useEffect(() => {
     if (!showStats && !showResetConfirm) return;
@@ -234,32 +245,68 @@ export default function App() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [showStats, showResetConfirm]);
 
+  const changeMode = useCallback(
+    (nextMode: GeneratorMode) => {
+      if (rolling || nextMode === mode) return;
+      generatorRef.current?.setMode(nextMode);
+      setMode(nextMode);
+    },
+    [mode, rolling],
+  );
+
+  const toggleSound = useCallback(() => {
+    const next = !soundOn;
+    setSoundOn(next);
+    try {
+      window.localStorage.setItem(SOUND_KEY, next ? "on" : "off");
+    } catch {
+      // Preference simply will not persist.
+    }
+    // Turning sound on is a user gesture, so play a short preview chime.
+    if (next) playLockIn(false);
+  }, [soundOn]);
+
   const generate = useCallback(() => {
-    if (rolling) return;
+    const generator = generatorRef.current;
+    if (rolling || !generator) return;
 
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     setRolling(true);
+    setPhase(0);
+    if (soundOn) playCharge();
+
+    // The spinning frames are cosmetic only: the real result is drawn once, at lock-in,
+    // so every shown result is a true consecutive draw from the selected mode.
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const intervalMs = window.matchMedia("(hover: none) and (pointer: coarse)").matches ? 96 : 72;
-    intervalRef.current = setInterval(() => {
-      setPair(generatePair());
-    }, intervalMs);
+    if (!reducedMotion) {
+      let frame = 0;
+      intervalRef.current = setInterval(() => {
+        frame += 1;
+        setPair(cosmeticPair());
+        setPhase(Math.min(PHASES.length - 1, Math.floor((frame * intervalMs) / (GENERATION_DURATION_MS / PHASES.length))));
+      }, intervalMs);
+    }
 
     timeoutRef.current = setTimeout(() => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = null;
       timeoutRef.current = null;
 
-      const result = generatePair();
+      const result = generator.next();
       const sum = result[0] + result[1];
       setPair(result);
       setRolling(false);
+      setRollKey((previous) => previous + 1);
+      setShoeStatus(generator.shoeStatus());
       setTally((previous) => ({ ...previous, [sum]: (previous[sum] ?? 0) + 1 }));
       setTotalRolls((previous) => previous + 1);
       setRecentResults((previous) => [{ pair: result, sum }, ...previous].slice(0, 3));
+      if (soundOn) playLockIn(describeResult(result).length > 0);
     }, GENERATION_DURATION_MS);
-  }, [rolling]);
+  }, [rolling, soundOn]);
 
   useEffect(() => {
     const handleSpacebar = (event: KeyboardEvent) => {
@@ -285,84 +332,86 @@ export default function App() {
   }, [generate, showResetConfirm, showStats]);
 
   const resetHistory = useCallback(() => {
+    // A fresh generator also means a freshly shuffled pool. The save effect then
+    // persists the cleared state (the chosen mode is kept).
+    generatorRef.current = createGenerator({ mode });
+    setShoeStatus(generatorRef.current.shoeStatus());
     setPair(null);
     setTally({});
     setTotalRolls(0);
     setRecentResults([]);
+    setRollKey(0);
     setShowStats(false);
     setShowResetConfirm(false);
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // The cleared in-memory state remains available if storage is restricted.
-    }
+  }, [mode]);
+
+  const finishSanity = useCallback((report: SanityReport) => {
+    workerRef.current?.terminate();
+    workerRef.current = null;
+    setSanityResult(report);
+    setSanityRunning(false);
+    setSanityProgress(0);
   }, []);
 
-  const runSanityCheck = useCallback(
+  const runSanity = useCallback(
     (isRecheck = false) => {
       if (sanityRunning) return;
 
       const rolls = isRecheck ? SANITY_RECHECK_ROLLS : SANITY_CHECK_ROLLS;
-      const sanityTally: Record<number, number> = {};
-      let completed = 0;
-      const chunkSize = 5_000;
-
       setSanityRunning(true);
       setSanityResult(null);
+      setSanityProgress(0);
 
-      const processChunk = () => {
-        const chunkEnd = Math.min(completed + chunkSize, rolls);
-        for (; completed < chunkEnd; completed += 1) {
-          const result = generatePair();
-          const resultSum = result[0] + result[1];
-          sanityTally[resultSum] = (sanityTally[resultSum] ?? 0) + 1;
-        }
-
-        if (completed < rolls) {
-          sanityTimeoutRef.current = setTimeout(processChunk, 0);
-          return;
-        }
-
-        let maxDifference = -1;
-        let worstTotal = 7;
-        let worstActual = 0;
-        let worstExpected = 0;
-
-        for (let value = 2; value <= 12; value += 1) {
-          const actual = ((sanityTally[value] ?? 0) / rolls) * 100;
-          const expected = (EXPECTED[value] / 36) * 100;
-          const difference = Math.abs(actual - expected);
-          if (difference > maxDifference) {
-            maxDifference = difference;
-            worstTotal = value;
-            worstActual = actual;
-            worstExpected = expected;
-          }
-        }
-
-        sanityTimeoutRef.current = null;
-        setSanityResult({
-          rolls,
-          passed: maxDifference <= SANITY_VARIANCE_LIMIT,
-          isRecheck,
-          worstTotal,
-          maxDifference,
-          actualPct: worstActual,
-          expectedPct: worstExpected,
-        });
-        setSanityRunning(false);
+      // Fallback for environments without module workers: same check, main thread.
+      const runInline = () => {
+        sanityTimeoutRef.current = setTimeout(() => {
+          sanityTimeoutRef.current = null;
+          finishSanity(runSanityCheck({ rolls, isRecheck }));
+        }, 0);
       };
 
-      sanityTimeoutRef.current = setTimeout(processChunk, 0);
+      if (typeof Worker === "undefined") {
+        runInline();
+        return;
+      }
+
+      try {
+        const worker = new Worker(new URL("./lib/sanity.worker.ts", import.meta.url), { type: "module" });
+        workerRef.current = worker;
+        const fallBack = () => {
+          worker.terminate();
+          workerRef.current = null;
+          runInline();
+        };
+        worker.onmessage = (event: MessageEvent<SanityWorkerResponse>) => {
+          const message = event.data;
+          if (message.type === "progress") setSanityProgress(message.completed / message.total);
+          else if (message.type === "done") finishSanity(message.report);
+          else fallBack();
+        };
+        worker.onerror = fallBack;
+        worker.postMessage({ rolls, isRecheck } satisfies SanityWorkerRequest);
+      } catch {
+        runInline();
+      }
     },
-    [sanityRunning],
+    [finishSanity, sanityRunning],
   );
 
   const handleSanityFix = useCallback(() => {
-    runSanityCheck(true);
-  }, [runSanityCheck]);
+    runSanity(true);
+  }, [runSanity]);
 
   const sum = pair ? pair[0] + pair[1] : null;
+  const resultTags = useMemo(() => (rolling ? [] : describeResult(pair)), [pair, rolling]);
+  const stageTone = resultTags[0]?.tone;
+  const hotStreak =
+    !rolling && recentResults.length === 3 && recentResults.every((entry) => entry.sum === recentResults[0].sum)
+      ? recentResults[0].sum
+      : null;
+  const fullSpectrum = SUM_VALUES.every((value) => (tally[value] ?? 0) > 0);
+  const shoePercent = Math.min(100, (shoeStatus.drawn / shoeStatus.cutAfter) * 100);
+
   const probabilitySummary = useMemo(() => {
     if (totalRolls === 0) return null;
 
@@ -371,7 +420,7 @@ export default function App() {
     let closestDifference = Number.POSITIVE_INFINITY;
     const closestTotals: Array<{ value: number; actual: number; expected: number }> = [];
 
-    for (let value = 2; value <= 12; value += 1) {
+    for (const value of SUM_VALUES) {
       const count = tally[value] ?? 0;
       if (count > mostRepeatedCount) {
         mostRepeatedCount = count;
@@ -382,7 +431,7 @@ export default function App() {
       }
 
       const actual = (count / totalRolls) * 100;
-      const expected = (EXPECTED[value] / 36) * 100;
+      const expected = expectedShare(value) * 100;
       const difference = Math.abs(actual - expected);
       if (difference < closestDifference) {
         closestDifference = difference;
@@ -409,7 +458,24 @@ export default function App() {
             </span>
             <span>Version 2.0</span>
           </div>
-          <span className="topbar-note">Between 1 and 6</span>
+          <div className="topbar-actions">
+            <span className="topbar-note">Between 1 and 6</span>
+            <button
+              type="button"
+              className={`sound-toggle ${soundOn ? "is-on" : ""}`}
+              onClick={toggleSound}
+              aria-pressed={soundOn}
+              aria-label={soundOn ? "Turn sound off" : "Turn sound on"}
+              data-testid="button-sound"
+            >
+              <span className="sound-bars" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              <span>{soundOn ? "Sound on" : "Sound off"}</span>
+            </button>
+          </div>
         </header>
 
         <section className="hero" aria-labelledby="page-title">
@@ -422,11 +488,60 @@ export default function App() {
         <section className="portal-card" aria-label="Two-number generator">
           <div className="portal-label">
             <span>Range 1–6</span>
-            <span>{rolling ? "Generating" : "Ready"}</span>
+            <span>{rolling ? PHASES[phase] : "Ready"}</span>
           </div>
 
-          <div className={`number-stage ${rolling ? "is-charged" : ""}`}>
+          <div className="mode-switch" role="group" aria-label="Generator mode">
+            <button
+              type="button"
+              className={`mode-option ${mode === "balanced" ? "is-active" : ""}`}
+              aria-pressed={mode === "balanced"}
+              disabled={rolling}
+              onClick={() => changeMode("balanced")}
+              data-testid="button-mode-balanced"
+            >
+              <strong>Balanced</strong>
+              <span>{POOL_SIZE} pool</span>
+            </button>
+            <button
+              type="button"
+              className={`mode-option ${mode === "pure" ? "is-active" : ""}`}
+              aria-pressed={mode === "pure"}
+              disabled={rolling}
+              onClick={() => changeMode("pure")}
+              data-testid="button-mode-pure"
+            >
+              <strong>Pure random</strong>
+              <span>independent</span>
+            </button>
+          </div>
+          <p className="mode-hint">
+            {mode === "balanced"
+              ? `A shuffled pool of ${POOL_SIZE} pairs (every pair 15 times), reshuffled after ${CUT_AFTER}. Smooths long streaks.`
+              : "Two fresh, independent draws every time. Long streaks can and do happen."}
+          </p>
+          {mode === "balanced" && (
+            <div
+              className="shoe-meter"
+              role="progressbar"
+              aria-label="Balanced pool progress"
+              aria-valuemin={0}
+              aria-valuemax={shoeStatus.cutAfter}
+              aria-valuenow={shoeStatus.drawn}
+              data-testid="meter-pool"
+            >
+              <div className="shoe-meter-track">
+                <div className="shoe-meter-fill" style={{ width: `${shoePercent}%` }} />
+              </div>
+              <span>
+                Pool {shoeStatus.drawn} / {shoeStatus.cutAfter} · reshuffles at the cut
+              </span>
+            </div>
+          )}
+
+          <div className={`number-stage ${rolling ? "is-charged" : ""} ${stageTone ? `is-${stageTone}` : ""}`}>
             <div className="energy-field" aria-hidden="true">
+              <span className="aura-ring" />
               <span className="energy-halo halo-one" />
               <span className="energy-halo halo-two" />
               <span className="sigil sigil-one" />
@@ -435,6 +550,7 @@ export default function App() {
               <span className="speed-line speed-line-two" />
               <span className="speed-line speed-line-three" />
               <span className="energy-core" />
+              {rollKey > 0 && !rolling && <span key={rollKey} className="shockwave" />}
             </div>
 
             {pair ? (
@@ -465,7 +581,7 @@ export default function App() {
             {rolling ? (
               <>
                 <span className="result-kicker">Result</span>
-                <span className="result-value">Generating</span>
+                <span className="result-value">{PHASES[phase]}</span>
                 <span className="result-formula" aria-hidden="true">
                   · · ·
                 </span>
@@ -488,11 +604,35 @@ export default function App() {
               </>
             )}
           </div>
+
+          {(resultTags.length > 0 || hotStreak !== null || fullSpectrum) && (
+            <ul className="badge-row" aria-label="Result highlights">
+              {resultTags.map((tag) => (
+                <li key={tag.label} className={`badge badge-${tag.tone}`}>
+                  <strong>{tag.label}</strong>
+                  <span>{tag.odds}</span>
+                </li>
+              ))}
+              {hotStreak !== null && (
+                <li className="badge badge-streak">
+                  <strong>Hot streak</strong>
+                  <span>three {hotStreak}s in a row</span>
+                </li>
+              )}
+              {fullSpectrum && (
+                <li className="badge badge-spectrum">
+                  <strong>Full spectrum</strong>
+                  <span>every total from 2 to 12</span>
+                </li>
+              )}
+            </ul>
+          )}
+
           <p className="sr-only" aria-live="polite" aria-atomic="true">
             {rolling
               ? "Generating two numbers."
               : pair && sum !== null
-                ? `Generated ${pair[0]} and ${pair[1]}. Total ${sum}.`
+                ? `Generated ${pair[0]} and ${pair[1]}. Total ${sum}.${resultTags.map((tag) => ` ${tag.label}, ${tag.odds}.`).join("")}`
                 : ""}
           </p>
 
@@ -504,7 +644,7 @@ export default function App() {
             aria-label={rolling ? "Generating two numbers" : pair ? "Generate another pair of numbers" : "Generate two numbers"}
             data-testid="button-roll"
           >
-            {rolling ? "Generating" : pair ? "Generate again" : "Generate 2 numbers"}
+            {rolling ? PHASES[phase] : pair ? "Generate again" : "Generate 2 numbers"}
           </button>
 
           <div className="portal-foot">
@@ -518,13 +658,13 @@ export default function App() {
           <button
             type="button"
             className="sanity-check-button"
-            onClick={() => runSanityCheck()}
+            onClick={() => runSanity()}
             disabled={sanityRunning}
-            aria-label={sanityRunning ? "Checking 100,000 simulated rolls" : "Run sanity check"}
+            aria-label={sanityRunning ? "Running sanity check" : "Run sanity check"}
           >
-            {sanityRunning ? "Checking 100,000 rolls…" : "Run sanity check"}
+            {sanityRunning ? `Checking… ${Math.round(sanityProgress * 100)}%` : "Run sanity check"}
           </button>
-          <span>Diagnostic only · saved history stays unchanged</span>
+          <span>Diagnostic only · tests the raw randomness · saved history and pool stay unchanged</span>
         </div>
 
         {sanityResult && (
@@ -535,8 +675,8 @@ export default function App() {
           >
             <div className="sanity-popup-heading">
               <div>
-                <p className="modal-overline">{sanityResult.passed ? "Check passed" : "Large variance detected"}</p>
-                <h2>Probability sanity check</h2>
+                <p className="modal-overline">{sanityResult.passed ? "Check passed" : "Check flagged"}</p>
+                <h2>Randomness sanity check</h2>
               </div>
               <button
                 type="button"
@@ -548,27 +688,42 @@ export default function App() {
               </button>
             </div>
             <p className="sanity-popup-detail">
-              {sanityResult.rolls.toLocaleString()} simulated rolls · largest gap{" "}
-              <strong>{sanityResult.maxDifference.toFixed(2)} percentage points</strong>
+              {sanityResult.rolls.toLocaleString()} simulated results from the raw generator
             </p>
             <p className="sanity-popup-detail">
-              Number {sanityResult.worstTotal}: {sanityResult.actualPct.toFixed(2)}% actual vs{" "}
+              Distribution: χ² <strong>{sanityResult.chiSquare.toFixed(2)}</strong> (10 df) · p ={" "}
+              <strong>{sanityResult.pValue.toFixed(3)}</strong>
+            </p>
+            <p className="sanity-popup-detail">
+              Independence: consecutive correlation <strong>{sanityResult.serialCorrelation.toFixed(4)}</strong> · z ={" "}
+              {sanityResult.serialZ.toFixed(2)}
+            </p>
+            <p className="sanity-popup-detail">
+              Largest gap: number {sanityResult.worstTotal} at {sanityResult.actualPct.toFixed(2)}% vs{" "}
               {sanityResult.expectedPct.toFixed(2)}% expected
             </p>
             {sanityResult.passed ? (
-              <p className="sanity-popup-note">The distribution is within the expected variance.</p>
+              <p className="sanity-popup-note">
+                Totals follow the expected distribution and consecutive results look independent.
+              </p>
+            ) : sanityResult.isRecheck ? (
+              <p className="sanity-popup-note">
+                Flagged twice in a row ({sanityResult.failures.join(" and ")}). A fair generator almost never does
+                this, so it is worth investigating.
+              </p>
             ) : (
               <>
                 <p className="sanity-popup-note">
-                  Recheck before treating this as a generator issue. This will not change your saved history.
+                  A fair generator trips this about 1 run in 75, so recheck before treating it as a problem. This
+                  will not change your saved history.
                 </p>
                 <button
                   type="button"
                   className="sanity-fix-button"
                   onClick={handleSanityFix}
-                  aria-label="Recheck with 200,000 simulated rolls"
+                  aria-label="Recheck with 200,000 simulated results"
                 >
-                  Recheck with 200,000 rolls
+                  Recheck with 200,000 results
                 </button>
               </>
             )}
@@ -657,6 +812,13 @@ export default function App() {
                 </button>
               </div>
 
+              {totalRolls < SMALL_SAMPLE && (
+                <p className="small-sample-note" role="note" data-testid="note-small-sample">
+                  Small sample: with only {totalRolls} {totalRolls === 1 ? "result" : "results"}, bars swing widely
+                  even for a perfectly fair generator. Compare after a few hundred.
+                </p>
+              )}
+
               {probabilitySummary && (
                 <div className="analysis-summary" aria-label="Probability summary">
                   <div className="analysis-stat">
@@ -673,7 +835,7 @@ export default function App() {
                       {probabilitySummary.mostRepeatedTotals
                         .map((value) => {
                           const actual = ((tally[value] ?? 0) / totalRolls) * 100;
-                          const expected = (EXPECTED[value] / 36) * 100;
+                          const expected = expectedShare(value) * 100;
                           const timesLabel = probabilitySummary.mostRepeatedCount === 1 ? "time" : "times";
                           return `${probabilitySummary.mostRepeatedCount} ${timesLabel} (${actual.toFixed(1)}% actual vs ${expected.toFixed(2)}% expected)`;
                         })
@@ -701,15 +863,26 @@ export default function App() {
                 </div>
                 <div>
                   <span className="key-swatch key-swatch-expected" aria-hidden="true" />
-                  <span><strong>Expected</strong> fair share</span>
+                  <span><strong>Expected</strong> fair share (tick)</span>
+                </div>
+                <div>
+                  <span className="key-swatch key-swatch-band" aria-hidden="true" />
+                  <span><strong>Normal range</strong> 95% for this many results</span>
                 </div>
               </div>
 
               {DISTRIBUTION_ORDER.map((value) => {
                 const count = tally[value] ?? 0;
                 const actualPct = (count / totalRolls) * 100;
-                const expectedPct = (EXPECTED[value] / 36) * 100;
-                const fillWidth = Math.min((actualPct / expectedPct) * 100, 100);
+                const expectedPct = expectedShare(value) * 100;
+                // The track spans 0 to 2x the expected share, so the expected tick sits at
+                // the midpoint and overshoot is visible instead of being capped.
+                const scaleMax = expectedPct * 2;
+                const fillWidth = Math.min((actualPct / scaleMax) * 100, 100);
+                const band = variationBand(value, totalRolls);
+                const bandLeft = Math.min((band.low * 100 * 100) / scaleMax, 100);
+                const bandRight = Math.min((band.high * 100 * 100) / scaleMax, 100);
+                const isOver = actualPct > expectedPct;
 
                 return (
                   <div className="distribution-row" key={value} data-testid={`distribution-row-${value}`}>
@@ -725,16 +898,29 @@ export default function App() {
                     </div>
                     <div
                       className="distribution-track"
-                      aria-label={`Total ${value}: ${count} results, ${actualPct.toFixed(1)} percent actual, ${expectedPct.toFixed(2)} percent expected`}
+                      aria-label={`Total ${value}: ${count} results, ${actualPct.toFixed(1)} percent actual, ${expectedPct.toFixed(2)} percent expected, normal range ${(band.low * 100).toFixed(1)} to ${(band.high * 100).toFixed(1)} percent`}
                     >
                       <div className="distribution-expected" aria-hidden="true" />
-                      <div className="distribution-fill" style={{ width: `${fillWidth}%` }} aria-hidden="true" />
+                      <div
+                        className="distribution-band"
+                        style={{ left: `${bandLeft}%`, width: `${Math.max(bandRight - bandLeft, 0)}%` }}
+                        aria-hidden="true"
+                      />
+                      <div
+                        className={`distribution-fill ${isOver ? "is-over" : ""}`}
+                        style={{ width: `${fillWidth}%` }}
+                        aria-hidden="true"
+                      />
+                      <div className="distribution-tick" aria-hidden="true" />
                     </div>
                   </div>
                 );
               })}
 
-              <p className="stats-legend">The bar compares your observed share with the expected fair share.</p>
+              <p className="stats-legend">
+                The tick marks the expected share and the shaded band is the normal range for this many results.
+                Bars that stay inside the band are behaving like a fair generator.
+              </p>
             </section>
           </div>
         )}
@@ -758,7 +944,8 @@ export default function App() {
               <p className="modal-overline">Clear history</p>
               <h2 id="reset-title">Reset your results?</h2>
               <p id="reset-description">
-                This will clear the current numbers, recent results, and probability totals. This cannot be undone.
+                This will clear the current numbers, recent results, and probability totals, and reshuffle the pool.
+                This cannot be undone.
               </p>
               <div className="dialog-actions">
                 <button

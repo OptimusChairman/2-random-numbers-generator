@@ -1,5 +1,26 @@
 # Description:
-A mathematically pure, React/Vite-based web application that generates two independent integers between 1 and 6. The generator features an Ultra Instinct-inspired cosmic interface, a crisp 300-millisecond generation sequence, and a built-in probability tracker that compares your actual session results against the expected 1/36 mathematical distribution. The interface strictly avoids any traditional physical-object or dice-related terminology and imagery.
+A React/Vite web application that generates two integers between 1 and 6. It features an Ultra Instinct-inspired cosmic interface, a crisp 300-millisecond generation sequence, and a built-in probability tracker that compares your actual session results against the expected 1/36 mathematical distribution. The interface strictly avoids any traditional physical-object or dice-related terminology and imagery.
+
+# Two generator modes
+Switch between them at any time from the toggle on the main card. Both draw from the Web Crypto API with rejection sampling (no modulo bias).
+
+- **Balanced (540 pool):** a Fisher-Yates shuffled pool of 540 pairs (every one of the 36 pairs, 15 times each). Pairs are dealt without replacement and the pool is reshuffled after 405 draws (a casino-style cut point), so long streaks are smoothed and the tail of a pool can never be counted. The pool position is saved with your history.
+- **Pure random:** every result is two fresh, independent draws. Streaks, repeats and lopsided sessions can and do happen.
+
+The spinning animation is cosmetic only. The real result is drawn once, when the numbers lock in, so every result you see is a true consecutive draw from the selected mode.
+
+# Sanity check
+"Run sanity check" tests the raw randomness source in a Web Worker, separate from your live pool and history: a chi-square goodness-of-fit test on the totals (10 degrees of freedom) plus a lag-1 correlation test for independence. A fair generator trips it about 1 run in 75, which is why a flagged result offers a 200,000-result recheck.
 
 # A Note for Players:
-If you cannot use physical dice for personal, ethical, or religious reasons, this tool is built specifically for you. It provides a mathematically flawless, visually engaging alternative so you can fully participate in your favorite board games—like Catan—with your friends, without ever having to compromise your principles.
+If you cannot use physical dice for personal, ethical, or religious reasons, this tool is built specifically for you. It provides a mathematically sound, visually engaging alternative so you can fully participate in your favorite board games—like Catan—with your friends, without ever having to compromise your principles.
+
+# Development
+```bash
+pnpm install
+pnpm --filter @workspace/dice-roller run test        # unit tests (Vitest)
+pnpm --filter @workspace/dice-roller run typecheck
+PORT=5173 BASE_PATH=/ pnpm --filter @workspace/dice-roller run dev
+PORT=4173 BASE_PATH=/ pnpm --filter @workspace/dice-roller run build
+```
+The generator and statistics live in `artifacts/dice-roller/src/lib/` (`generator.ts`, `stats.ts`, `sanity.worker.ts`) and take an injectable random source, which is how the tests stay deterministic.
