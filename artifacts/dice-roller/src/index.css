@@ -1520,7 +1520,57 @@
   background: radial-gradient(circle, rgba(255, 255, 255, .5) 0%, var(--aura) 42%, transparent 100%);
   box-shadow: 0 0 30px var(--aura-glow), 0 0 80px var(--aura-glow);
 }
-.plus-mark { color: #f4f8ff; text-shadow: 0 0 8px rgba(8, 12, 40, .95), 0 0 2px rgba(8, 12, 40, .95); }
+
+/* --- One shared center: circles, plus, core, halos and sigils all line up --- */
+
+/* The label sits above each circle without taking layout space, so a number block is
+   exactly as tall as its circle and the stage padding is symmetric. That makes the
+   circles' center, the plus, and the stage's center (where the background UI is
+   anchored) the same point. */
+.number-stage { padding-block: 34px; }
+.number-node { gap: 0; }
+.number-index {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 13px;
+  text-align: center;
+}
+
+/* The plus is drawn with two bars instead of a "+" character: a font glyph sits a few
+   pixels above the middle of its line box, so it could never be exactly centered. */
+.plus-mark {
+  position: relative;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: #f4f8ff;
+  font-size: 0;
+  line-height: 0;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 2px 100% no-repeat;
+  filter: drop-shadow(0 0 5px rgba(8, 12, 40, .95));
+}
+
+/* The original keyframes (pulse, orbit, charge) replace `transform` entirely, which threw
+   away the translate(-50%, -50%) centering while they ran and left the core and rings
+   offset from the middle. The standalone `translate` property composes with `transform`,
+   so centering now survives every animation. */
+.energy-field,
+.energy-halo,
+.sigil,
+.energy-core,
+.speed-line { translate: -50% -50%; }
+.energy-field,
+.energy-halo { transform: none; }
+.sigil { transform: rotate(45deg); }
+.sigil-two { transform: rotate(12deg); }
+.energy-core { transform: scale(.8); }
+.speed-line-one { transform: rotate(-26deg); }
+.speed-line-two { transform: rotate(31deg); }
+.speed-line-three { transform: rotate(164deg); }
 .speed-line { background: linear-gradient(90deg, transparent, rgba(214, 228, 255, .85), transparent); }
 
 /* --- Aura ring: a slowly turning conic arc that whips around while generating --- */
@@ -1979,10 +2029,10 @@
   .portal-card { padding: 19px 15px 25px; border-radius: 24px; }
   .portal-card::before { border-radius: 23px; }
   .portal-label { margin-bottom: 18px; }
-  .number-stage { gap: 9px; min-height: 185px; padding-bottom: 22px; }
+  .number-stage { gap: 9px; min-height: 185px; padding-block: 30px; }
   .number-value { border-width: 1px; }
   .number-value::after { inset: 6px; }
-  .plus-mark { font-size: 15px; }
+  .plus-mark { width: 14px; height: 14px; }
   .portal-foot { flex-direction: column; align-items: center; gap: 7px; }
   .recent-results { margin-top: 22px; padding: 16px 16px 18px; }
   .recent-heading h2 { font-size: 17px; }
