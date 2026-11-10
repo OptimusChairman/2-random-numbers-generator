@@ -1433,7 +1433,7 @@
 
 /* ==========================================================================
  * Ultra theme v2: silver + indigo palette, aura, shockwave, afterimage trails,
- * starfield, mode switch, badges, tracker bands.
+ * starfield, mode switch, tracker bands.
  * Kept before the touch/reduced-motion media queries below so they still win.
  * ========================================================================== */
 
@@ -1847,40 +1847,6 @@
 }
 .shoe-meter > span { color: rgba(205, 220, 244, .45); font-family: var(--app-font-mono); font-size: 9px; letter-spacing: .06em; }
 
-/* --- Result badges --- */
-.badge-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin: -10px auto 20px;
-  padding: 0;
-  list-style: none;
-}
-.badge {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 6px 12px;
-  border: 1px solid rgba(184, 207, 246, .28);
-  border-radius: 999px;
-  background: rgba(120, 150, 255, .1);
-  animation: badgeIn .45s cubic-bezier(.16, 1, .3, 1) both;
-}
-.badge strong { color: #eef4ff; font-family: "Space Grotesk", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: .02em; }
-.badge span { color: rgba(205, 220, 244, .62); font-family: var(--app-font-mono); font-size: 9px; letter-spacing: .06em; }
-.badge-peak { border-color: rgba(223, 233, 255, .55); background: rgba(223, 233, 255, .12); }
-.badge-mirror { border-color: rgba(154, 166, 255, .62); background: rgba(120, 130, 255, .16); }
-.badge-rare { border-color: rgba(255, 222, 150, .62); background: rgba(255, 214, 130, .13); }
-.badge-rare strong { color: #ffeec8; }
-.badge-streak { border-color: rgba(111, 180, 255, .62); background: rgba(80, 150, 255, .14); }
-.badge-spectrum { border-color: rgba(190, 170, 255, .62); background: linear-gradient(115deg, rgba(130, 110, 255, .22), rgba(111, 180, 255, .16)); }
-
-@keyframes badgeIn {
-  from { opacity: 0; transform: translateY(6px) scale(.94); }
-  to { opacity: 1; transform: none; }
-}
-
 /* --- Probability tracker: expected tick, normal-range band, visible overshoot --- */
 .small-sample-note {
   margin: 0 0 16px;
@@ -1942,7 +1908,6 @@
   .sound-toggle { padding: 6px 11px; }
   .mode-option { padding: 8px 6px; }
   .mode-option strong { font-size: 12px; }
-  .badge-row { margin-top: -6px; }
   .number-node.is-charged .number-glyph,
   .number-node-b.is-charged .number-glyph { text-shadow: none; }
 }

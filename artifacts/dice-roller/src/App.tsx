@@ -41,7 +41,7 @@ type PersistedState = {
   mode: GeneratorMode;
   shoe: ShoeState | null;
 };
-type ResultTag = { label: string; odds: string; tone: "mirror" | "peak" | "rare" };
+type ResultTone = "mirror" | "peak" | "rare";
 
 function isValidPair(value: unknown): value is Pair {
   return (
@@ -125,15 +125,15 @@ function loadSoundPreference(): boolean {
   }
 }
 
-function describeResult(pair: Pair | null): ResultTag[] {
-  if (!pair) return [];
+/** Aura color for the stage: a rare total (2 or 12), then doubles, then the most likely total (7). */
+function getResultTone(pair: Pair | null): ResultTone | undefined {
+  if (!pair) return undefined;
   const [a, b] = pair;
   const total = a + b;
-  const tags: ResultTag[] = [];
-  if (total === 2 || total === 12) tags.push({ label: "Rare edge", odds: "1 in 36", tone: "rare" });
-  if (a === b) tags.push({ label: "Mirror pair", odds: "1 in 6", tone: "mirror" });
-  if (total === 7) tags.push({ label: "Peak odds", odds: "1 in 6", tone: "peak" });
-  return tags;
+  if (total === 2 || total === 12) return "rare";
+  if (a === b) return "mirror";
+  if (total === 7) return "peak";
+  return undefined;
 }
 
 function NumberNode({
@@ -305,7 +305,7 @@ export default function App() {
       setTally((previous) => ({ ...previous, [sum]: (previous[sum] ?? 0) + 1 }));
       setTotalRolls((previous) => previous + 1);
       setRecentResults((previous) => [{ pair: result, sum }, ...previous].slice(0, 3));
-      if (soundOn) playLockIn(describeResult(result).length > 0);
+      if (soundOn) playLockIn(getResultTone(result) !== undefined);
     }, GENERATION_DURATION_MS);
   }, [rolling, soundOn]);
 
@@ -404,13 +404,7 @@ export default function App() {
   }, [runSanity]);
 
   const sum = pair ? pair[0] + pair[1] : null;
-  const resultTags = useMemo(() => (rolling ? [] : describeResult(pair)), [pair, rolling]);
-  const stageTone = resultTags[0]?.tone;
-  const hotStreak =
-    !rolling && recentResults.length === 3 && recentResults.every((entry) => entry.sum === recentResults[0].sum)
-      ? recentResults[0].sum
-      : null;
-  const fullSpectrum = SUM_VALUES.every((value) => (tally[value] ?? 0) > 0);
+  const stageTone = rolling ? undefined : getResultTone(pair);
   const shoePercent = Math.min(100, (shoeStatus.drawn / shoeStatus.cutAfter) * 100);
 
   const probabilitySummary = useMemo(() => {
@@ -620,34 +614,11 @@ export default function App() {
             )}
           </div>
 
-          {(resultTags.length > 0 || hotStreak !== null || fullSpectrum) && (
-            <ul className="badge-row" aria-label="Result highlights">
-              {resultTags.map((tag) => (
-                <li key={tag.label} className={`badge badge-${tag.tone}`}>
-                  <strong>{tag.label}</strong>
-                  <span>{tag.odds}</span>
-                </li>
-              ))}
-              {hotStreak !== null && (
-                <li className="badge badge-streak">
-                  <strong>Hot streak</strong>
-                  <span>three {hotStreak}s in a row</span>
-                </li>
-              )}
-              {fullSpectrum && (
-                <li className="badge badge-spectrum">
-                  <strong>Full spectrum</strong>
-                  <span>every total from 2 to 12</span>
-                </li>
-              )}
-            </ul>
-          )}
-
           <p className="sr-only" aria-live="polite" aria-atomic="true">
             {rolling
               ? "Generating two numbers."
               : pair && sum !== null
-                ? `Generated ${pair[0]} and ${pair[1]}. Total ${sum}.${resultTags.map((tag) => ` ${tag.label}, ${tag.odds}.`).join("")}`
+                ? `Generated ${pair[0]} and ${pair[1]}. Total ${sum}.`
                 : ""}
           </p>
 
