@@ -35,4 +35,8 @@ pnpm --filter @workspace/dice-roller run typecheck
 PORT=5173 BASE_PATH=/ pnpm --filter @workspace/dice-roller run dev
 PORT=4173 BASE_PATH=/ pnpm --filter @workspace/dice-roller run build
 ```
+Browser smoke tests (phone, tablet, desktop, persistence, theme artwork) live in `artifacts/dice-roller/e2e/smoke.mjs`. They are not part of the site's install or build; run the built app, then `pnpm --filter @workspace/dice-roller run e2e` (needs Playwright and a Chromium browser).
+
+The service worker caches each theme's artwork the first time it is viewed. Artwork files are not renamed per version, so after replacing an image in `public/backgrounds/`, bump `CACHE_NAME` in `public/sw.js`.
+
 The generator and statistics live in `artifacts/dice-roller/src/lib/` (`generator.ts`, `stats.ts`, `trend.ts`, `settings.ts`, `sanity.worker.ts`) and take an injectable random source, which is how the tests stay deterministic.

@@ -39,6 +39,7 @@ import { PoolGrid } from "./components/game/PoolGrid";
 import { HistoryStrip, type Result } from "./components/game/HistoryStrip";
 import { TrackerCharts } from "./components/game/TrackerCharts";
 import { SettingsRow } from "./components/game/SettingsRow";
+import { ThemeBackdrop } from "./components/game/ThemeBackdrop";
 
 const APP_VERSION = "3.0";
 const RECENT_LIMIT = 10;
@@ -589,7 +590,7 @@ export default function App() {
 
   return (
     <main className="cosmos" data-theme={settings.theme} ref={setCosmosEl}>
-      <div className="theme-backdrop" aria-hidden="true" />
+      <ThemeBackdrop theme={settings.theme} />
       <div className="orb orb-one" aria-hidden="true" />
       <div className="orb orb-two" aria-hidden="true" />
 

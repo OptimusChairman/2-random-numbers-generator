@@ -346,10 +346,16 @@
     #050711;
 }
 
-.cosmos { --t-bg: var(--t-bg-landscape); }
+.theme-backdrop[data-bg="silver"] { --t-bg: url("/backgrounds/silver-landscape.webp"); }
+.theme-backdrop[data-bg="ember"] { --t-bg: url("/backgrounds/ember-landscape.webp"); }
+.theme-backdrop[data-bg="emerald"] { --t-bg: url("/backgrounds/emerald-landscape.webp"); }
+.theme-backdrop.is-fading-in { animation: backdropIn .55s ease-out both; }
+@keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
 
 @media (orientation: portrait) {
-  .cosmos { --t-bg: var(--t-bg-portrait); }
+  .theme-backdrop[data-bg="silver"] { --t-bg: url("/backgrounds/silver-portrait.webp"); }
+  .theme-backdrop[data-bg="ember"] { --t-bg: url("/backgrounds/ember-portrait.webp"); }
+  .theme-backdrop[data-bg="emerald"] { --t-bg: url("/backgrounds/emerald-portrait.webp"); }
   .theme-backdrop {
     background:
       linear-gradient(180deg, rgba(4, 6, 17, 0) 0%, rgba(4, 6, 17, .1) 38%, rgba(4, 6, 17, .42) 100%),
@@ -885,11 +891,6 @@
   text-transform: uppercase;
 }
 
-.recent-list {
-  display: grid;
-  gap: 6px;
-}
-
 .recent-result {
   display: grid;
   grid-template-columns: 36px 1fr;
@@ -898,37 +899,6 @@
   min-height: 36px;
   padding: 6px 0;
   border-top: 1px solid rgba(184, 207, 246, .08);
-}
-
-.recent-result-index {
-  color: rgba(169, 216, 255, .5);
-  font-family: var(--app-font-mono);
-  font-size: 10px;
-  letter-spacing: .05em;
-}
-
-.recent-result-expression {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 10px;
-  color: #edf5ff;
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 17px;
-  letter-spacing: -.02em;
-}
-
-.recent-result-expression strong {
-  font-weight: 600;
-}
-
-.recent-result-equals {
-  color: rgba(169, 216, 255, .55);
-  font-family: var(--app-font-mono);
-  font-size: 13px;
-}
-
-.recent-result-total {
-  color: #b9d9ff;
 }
 
 .stats-toggle {
@@ -1733,31 +1703,8 @@
 /* --- Top bar: sound toggle --- */
 .topbar-actions { display: flex; align-items: center; gap: 16px; }
 
-.sound-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 13px;
-  border: 1px solid rgba(184, 207, 246, .22);
-  border-radius: 999px;
-  color: rgba(205, 220, 244, .7);
-  background: rgba(87, 133, 218, .07);
-  cursor: pointer;
-  font-family: var(--app-font-mono);
-  font-size: 10px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  transition: background .2s ease, border-color .2s ease, color .2s ease;
-}
-.sound-toggle:hover { color: #edf5ff; border-color: rgba(169, 216, 255, .55); background: rgba(87, 133, 218, .16); }
-.sound-toggle.is-on { color: #edf5ff; border-color: rgba(143, 170, 255, .65); background: rgba(var(--t-deep-rgb), .22); }
-.sound-toggle:focus-visible { outline: 3px solid rgba(180, 220, 255, .8); outline-offset: 4px; }
-
 .sound-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 11px; }
 .sound-bars i { display: block; width: 2px; height: 4px; border-radius: 2px; background: currentColor; opacity: .75; }
-.sound-toggle.is-on .sound-bars i { animation: soundBars .9s ease-in-out infinite; }
-.sound-toggle.is-on .sound-bars i:nth-child(2) { animation-delay: .15s; }
-.sound-toggle.is-on .sound-bars i:nth-child(3) { animation-delay: .3s; }
 
 @keyframes soundBars {
   0%, 100% { height: 3px; }
@@ -1859,14 +1806,6 @@
   max-width: 420px;
   margin: 0 auto 6px;
 }
-.shoe-meter-track { width: 100%; height: 5px; overflow: hidden; border-radius: 99px; background: rgba(203, 208, 228, .1); }
-.shoe-meter-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--t-deep), var(--t-light));
-  box-shadow: 0 0 12px rgba(var(--t-accent-rgb), .6);
-  transition: width .35s ease;
-}
 .shoe-meter > span { color: rgba(205, 220, 244, .45); font-family: var(--app-font-mono); font-size: 9px; letter-spacing: .06em; }
 
 /* --- Probability tracker: expected tick, normal-range band, visible overshoot --- */
@@ -1930,8 +1869,6 @@
   --t-accent-soft: #9ccbff;
   --t-light: #bfe0ff;
   --t-tint: 0;
-  --t-bg-landscape: url("/backgrounds/silver-landscape.webp");
-  --t-bg-portrait: url("/backgrounds/silver-portrait.webp");
 }
 .cosmos[data-theme="ember"] {
   --t-deep-rgb: 255, 98, 64;
@@ -1944,8 +1881,6 @@
   --t-accent-soft: #ffb98a;
   --t-light: #ffd9b8;
   --t-tint: 0;
-  --t-bg-landscape: url("/backgrounds/ember-landscape.webp");
-  --t-bg-portrait: url("/backgrounds/ember-portrait.webp");
 }
 .cosmos[data-theme="emerald"] {
   --t-deep-rgb: 20, 184, 130;
@@ -1958,8 +1893,6 @@
   --t-accent-soft: #8ef0c8;
   --t-light: #c4ffe9;
   --t-tint: 0;
-  --t-bg-landscape: url("/backgrounds/emerald-landscape.webp");
-  --t-bg-portrait: url("/backgrounds/emerald-portrait.webp");
 }
 .cosmos::after { translate: var(--tilt-x, 0px) var(--tilt-y, 0px); }
 
@@ -2137,7 +2070,8 @@
   .number-node.is-revealed .number-glyph,
   .history-orb.is-latest,
   .odds-dot-halo,
-  .pool-latest-halo { animation: none; }
+  .pool-latest-halo,
+  .theme-backdrop.is-fading-in { animation: none; }
   .odds-dot,
   .mode-switch::before { transition: none; }
 }
@@ -2154,8 +2088,9 @@
 .brand-mark span { text-shadow: 0 1px 10px rgba(0, 0, 0, .85), 0 0 3px rgba(0, 0, 0, .6); }
 
 /* Phones: leave room under the top bar for the character artwork. */
-@media (orientation: portrait) and (max-width: 700px) {
-  .hero { padding-top: clamp(80px, 15.5dvh, 150px); }
+@media (orientation: portrait) {
+  /* The artwork is drawn at max(screen height, 1.78 x width); the character fills its top ~22%. */
+  .hero { padding-top: max(80px, calc(0.22 * max(100dvh, 177.7vw) - 62px)); }
 }
 
 /* --- Calmer path for touch devices and small screens --- */
@@ -2172,7 +2107,6 @@
 
 @media (max-width: 560px) {
   .topbar-actions { gap: 10px; }
-  .sound-toggle { padding: 6px 11px; }
   .mode-option { padding: 8px 6px; }
   .mode-option strong { font-size: 12px; }
   .number-node.is-charged .number-glyph,
@@ -2268,7 +2202,6 @@
   .portal-foot { flex-direction: column; align-items: center; gap: 7px; }
   .recent-results { margin-top: 22px; padding: 16px 16px 18px; }
   .recent-heading h2 { font-size: 17px; }
-  .recent-result-expression { font-size: 16px; }
   .history-actions { flex-direction: column; }
   .history-actions .stats-toggle,
   .reset-button { width: min(100%, 280px); }
