@@ -21,6 +21,30 @@ import {
 } from "./lib/stats";
 import type { SanityWorkerRequest, SanityWorkerResponse } from "./lib/sanity.worker";
 import { playCharge, playLockIn } from "./lib/sound";
+import {
+  DEFAULT_SETTINGS,
+  loadSettings,
+  nextTheme,
+  saveSettings,
+  type Settings,
+  type Theme,
+} from "./lib/settings";
+import { MAX_TREND_POINTS, appendTrend, isValidTrend, totalVariation, type TrendPoint } from "./lib/trend";
+import { HAPTIC_CHARGE, HAPTIC_LOCK, HAPTIC_SPECIAL, HAPTIC_TAP, canVibrate, vibrate } from "./lib/haptics";
+import { shareResult } from "./lib/share";
+import { useCountUp } from "./hooks/useCountUp";
+import { canUseMotion, requestMotionPermission, useMotion } from "./hooks/useMotion";
+import { OddsCurve } from "./components/game/OddsCurve";
+import { PoolGrid } from "./components/game/PoolGrid";
+import { HistoryStrip, type Result } from "./components/game/HistoryStrip";
+import { TrackerCharts } from "./components/game/TrackerCharts";
+import { SettingsRow } from "./components/game/SettingsRow";
+
+const APP_VERSION = "3.0";
+const RECENT_LIMIT = 10;
+const THEME_META_COLORS: Record<Theme, string> = { silver: "#071126", ember: "#1a0b08", emerald: "#04150f" };
+
+type InstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 
 const DISTRIBUTION_ORDER = [7, 6, 8, 5, 9, 4, 10, 3, 11, 2, 12];
 const GENERATION_DURATION_MS = 300;
@@ -30,9 +54,7 @@ const SANITY_RECHECK_ROLLS = 200_000;
 const SMALL_SAMPLE = 300;
 const PHASES = ["Focusing", "Aligning", "Locking in"] as const;
 const STORAGE_KEY = "two-number-generator-history";
-const SOUND_KEY = "two-number-generator-sound";
 
-type Result = { pair: Pair; sum: number };
 type PersistedState = {
   pair: Pair | null;
   tally: Record<number, number>;
@@ -40,6 +62,7 @@ type PersistedState = {
   recentResults: Result[];
   mode: GeneratorMode;
   shoe: ShoeState | null;
+  trend: TrendPoint[];
 };
 type ResultTone = "mirror" | "peak" | "rare";
 
@@ -75,6 +98,7 @@ function loadPersistedState(): PersistedState | null {
       recentResults?: unknown;
       mode?: unknown;
       shoe?: unknown;
+      trend?: unknown;
     };
 
     if (
@@ -85,7 +109,7 @@ function loadPersistedState(): PersistedState | null {
       typeof parsed.tally !== "object" ||
       Array.isArray(parsed.tally) ||
       !Array.isArray(parsed.recentResults) ||
-      parsed.recentResults.length > 3 ||
+      parsed.recentResults.length > RECENT_LIMIT ||
       !parsed.recentResults.every(isValidResult)
     ) {
       return null;
@@ -103,6 +127,16 @@ function loadPersistedState(): PersistedState | null {
     const tallyTotal = Object.values(tally).reduce((sum, count) => sum + count, 0);
     if (tallyTotal !== parsed.totalRolls) return null;
 
+    // Saves from before 3.0 have no trend: start it from where the tally stands now.
+    const savedTrend = isValidTrend(parsed.trend) ? parsed.trend : null;
+    const rolls = parsed.totalRolls as number;
+    const trendMatches = savedTrend !== null && (savedTrend.length === 0 ? rolls === 0 : savedTrend[savedTrend.length - 1][0] === rolls);
+    const trend: TrendPoint[] = trendMatches
+      ? savedTrend
+      : rolls > 0
+        ? [[rolls, totalVariation(tally, rolls)]]
+        : [];
+
     return {
       pair: parsed.pair as Pair | null,
       tally,
@@ -111,17 +145,10 @@ function loadPersistedState(): PersistedState | null {
       // Saves from before the mode toggle have neither field: they used the balanced pool.
       mode: parsed.mode === "pure" ? "pure" : "balanced",
       shoe: isValidShoeState(parsed.shoe) ? parsed.shoe : null,
+      trend,
     };
   } catch {
     return null;
-  }
-}
-
-function loadSoundPreference(): boolean {
-  try {
-    return window.localStorage.getItem(SOUND_KEY) === "on";
-  } catch {
-    return false;
   }
 }
 
@@ -184,13 +211,29 @@ export default function App() {
   const [recentResults, setRecentResults] = useState<Result[]>(() => persistedState?.recentResults ?? []);
   const [mode, setMode] = useState<GeneratorMode>(() => persistedState?.mode ?? "balanced");
   const [rollKey, setRollKey] = useState(0);
-  const [soundOn, setSoundOn] = useState(loadSoundPreference);
+  const [settings, setSettings] = useState<Settings>(() =>
+    typeof window === "undefined" ? DEFAULT_SETTINGS : loadSettings(),
+  );
+  const soundOn = settings.sound;
+  const hapticsOn = settings.haptics;
+  const [trend, setTrend] = useState<TrendPoint[]>(() => persistedState?.trend ?? []);
+  const [cosmosEl, setCosmosEl] = useState<HTMLElement | null>(null);
+  const [installEvent, setInstallEvent] = useState<InstallPromptEvent | null>(null);
+  const [notice, setNotice] = useState("");
+  const [canMotion] = useState(canUseMotion);
+  const [vibrates] = useState(canVibrate);
   const [showStats, setShowStats] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [sanityRunning, setSanityRunning] = useState(false);
   const [sanityProgress, setSanityProgress] = useState(0);
   const [sanityResult, setSanityResult] = useState<SanityReport | null>(null);
 
+  // The running session, kept in a ref so lock-in always builds on the latest values.
+  const sessionRef = useRef({
+    tally: persistedState?.tally ?? ({} as Record<number, number>),
+    totalRolls: persistedState?.totalRolls ?? 0,
+    trend: persistedState?.trend ?? ([] as TrendPoint[]),
+  });
   const generatorRef = useRef<Generator | null>(null);
   if (generatorRef.current === null) {
     generatorRef.current = createGenerator({
@@ -225,12 +268,13 @@ export default function App() {
           recentResults,
           mode,
           shoe: generatorRef.current?.serializeShoe() ?? null,
+          trend,
         } satisfies PersistedState),
       );
     } catch {
       // Storage can be unavailable in private browsing or restricted web views.
     }
-  }, [mode, pair, recentResults, tally, totalRolls]);
+  }, [mode, pair, recentResults, tally, totalRolls, trend]);
 
   useEffect(() => {
     if (!showStats && !showResetConfirm) return;
@@ -255,17 +299,76 @@ export default function App() {
     [mode, rolling],
   );
 
-  const toggleSound = useCallback(() => {
-    const next = !soundOn;
-    setSoundOn(next);
+  useEffect(() => {
+    saveSettings(settings);
+  }, [settings]);
+
+  useEffect(() => {
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_META_COLORS[settings.theme]);
+  }, [settings.theme]);
+
+  useEffect(() => {
+    const onPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallEvent(event as InstallPromptEvent);
+    };
+    const onInstalled = () => setInstallEvent(null);
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  const toggleSetting = useCallback(
+    async (key: "sound" | "haptics" | "motion") => {
+      const next = !settings[key];
+      if (key === "motion" && next) {
+        // iPhones only allow motion access from inside a tap.
+        const allowed = await requestMotionPermission();
+        if (!allowed) {
+          setNotice("Motion access was not allowed, so shake and tilt stay off.");
+          return;
+        }
+      }
+      setSettings((previous) => ({ ...previous, [key]: next }));
+      setNotice(`${key === "motion" ? "Shake and tilt" : key === "sound" ? "Sound" : "Haptics"} ${next ? "on" : "off"}.`);
+      // Turning these on is a user gesture, so give a short preview.
+      if (key === "sound" && next) playLockIn(false);
+      if (key === "haptics" && next) vibrate(HAPTIC_TAP * 3);
+    },
+    [settings],
+  );
+
+  const cycleTheme = useCallback(() => {
+    setSettings((previous) => ({ ...previous, theme: nextTheme(previous.theme) }));
+    if (hapticsOn) vibrate(HAPTIC_TAP);
+  }, [hapticsOn]);
+
+  const installApp = useCallback(async () => {
+    if (!installEvent) return;
     try {
-      window.localStorage.setItem(SOUND_KEY, next ? "on" : "off");
-    } catch {
-      // Preference simply will not persist.
+      await installEvent.prompt();
+      await installEvent.userChoice;
+    } finally {
+      setInstallEvent(null);
     }
-    // Turning sound on is a user gesture, so play a short preview chime.
-    if (next) playLockIn(false);
-  }, [soundOn]);
+  }, [installEvent]);
+
+  const [sharing, setSharing] = useState(false);
+  const share = useCallback(async () => {
+    if (!pair || sharing) return;
+    setSharing(true);
+    try {
+      const outcome = await shareResult(pair, settings.theme, APP_VERSION);
+      if (outcome === "downloaded") setNotice("Result image saved.");
+    } catch {
+      setNotice("Could not create the result image.");
+    } finally {
+      setSharing(false);
+    }
+  }, [pair, settings.theme, sharing]);
 
   const generate = useCallback(() => {
     const generator = generatorRef.current;
@@ -277,6 +380,7 @@ export default function App() {
     setRolling(true);
     setPhase(0);
     if (soundOn) playCharge();
+    if (hapticsOn) vibrate(HAPTIC_CHARGE);
 
     // The spinning frames are cosmetic only: the real result is drawn once, at lock-in,
     // so every shown result is a true consecutive draw from the selected mode.
@@ -302,12 +406,32 @@ export default function App() {
       setRolling(false);
       setRollKey((previous) => previous + 1);
       setShoeStatus(generator.shoeStatus());
-      setTally((previous) => ({ ...previous, [sum]: (previous[sum] ?? 0) + 1 }));
-      setTotalRolls((previous) => previous + 1);
-      setRecentResults((previous) => [{ pair: result, sum }, ...previous].slice(0, 3));
-      if (soundOn) playLockIn(getResultTone(result) !== undefined);
+
+      const session = sessionRef.current;
+      const nextTally = { ...session.tally, [sum]: (session.tally[sum] ?? 0) + 1 };
+      const nextTotal = session.totalRolls + 1;
+      const nextTrend = appendTrend(session.trend, [nextTotal, totalVariation(nextTally, nextTotal)], MAX_TREND_POINTS);
+      sessionRef.current = { tally: nextTally, totalRolls: nextTotal, trend: nextTrend };
+      setTally(nextTally);
+      setTotalRolls(nextTotal);
+      setTrend(nextTrend);
+      setRecentResults((previous) => [{ pair: result, sum }, ...previous].slice(0, RECENT_LIMIT));
+
+      const special = getResultTone(result) !== undefined;
+      if (soundOn) playLockIn(special);
+      if (hapticsOn) vibrate(special ? HAPTIC_SPECIAL : HAPTIC_LOCK);
     }, GENERATION_DURATION_MS);
-  }, [rolling, soundOn]);
+  }, [hapticsOn, rolling, soundOn]);
+
+  // Shake to generate, and tilt the starfield. Both stay quiet while a dialog is open.
+  const generateRef = useRef(generate);
+  generateRef.current = generate;
+  const dialogOpenRef = useRef(false);
+  dialogOpenRef.current = showStats || showResetConfirm;
+  const onShake = useCallback(() => {
+    if (!dialogOpenRef.current) generateRef.current();
+  }, []);
+  useMotion(settings.motion && canMotion, cosmosEl, onShake);
 
   useEffect(() => {
     const handleSpacebar = (event: KeyboardEvent) => {
@@ -338,8 +462,10 @@ export default function App() {
     generatorRef.current = createGenerator({ mode });
     setShoeStatus(generatorRef.current.shoeStatus());
     setPair(null);
+    sessionRef.current = { tally: {}, totalRolls: 0, trend: [] };
     setTally({});
     setTotalRolls(0);
+    setTrend([]);
     setRecentResults([]);
     setRollKey(0);
     setShowStats(false);
@@ -405,7 +531,8 @@ export default function App() {
 
   const sum = pair ? pair[0] + pair[1] : null;
   const stageTone = rolling ? undefined : getResultTone(pair);
-  const shoePercent = Math.min(100, (shoeStatus.drawn / shoeStatus.cutAfter) * 100);
+  const countedTotal = useCountUp(rolling ? null : sum, rollKey);
+  const shownTotal = countedTotal ?? sum;
 
   const probabilitySummary = useMemo(() => {
     if (totalRolls === 0) return null;
@@ -441,35 +568,20 @@ export default function App() {
   }, [tally, totalRolls]);
 
   return (
-    <main className="cosmos">
+    <main className="cosmos" data-theme={settings.theme} ref={setCosmosEl}>
       <div className="orb orb-one" aria-hidden="true" />
       <div className="orb orb-two" aria-hidden="true" />
 
       <div className="app-shell">
         <header className="topbar">
-          <div className="brand-mark" aria-label="Version 2.0">
+          <div className="brand-mark" aria-label={`Version ${APP_VERSION}`}>
             <span className="brand-symbol" aria-hidden="true">
               <span />
             </span>
-            <span>Version 2.0</span>
+            <span>Version {APP_VERSION}</span>
           </div>
           <div className="topbar-actions">
             <span className="topbar-note">Between 1 and 6</span>
-            <button
-              type="button"
-              className={`sound-toggle ${soundOn ? "is-on" : ""}`}
-              onClick={toggleSound}
-              aria-pressed={soundOn}
-              aria-label={soundOn ? "Turn sound off" : "Turn sound on"}
-              data-testid="button-sound"
-            >
-              <span className="sound-bars" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-              </span>
-              <span>{soundOn ? "Sound on" : "Sound off"}</span>
-            </button>
           </div>
         </header>
 
@@ -486,7 +598,7 @@ export default function App() {
             <span>{rolling ? PHASES[phase] : "Ready"}</span>
           </div>
 
-          <div className="mode-switch" role="group" aria-label="Generator mode">
+          <div className="mode-switch" data-mode={mode} role="group" aria-label="Generator mode">
             <button
               type="button"
               className={`mode-option ${mode === "balanced" ? "is-active" : ""}`}
@@ -539,9 +651,7 @@ export default function App() {
               aria-valuenow={shoeStatus.drawn}
               data-testid="meter-pool"
             >
-              <div className="shoe-meter-track">
-                <div className="shoe-meter-fill" style={{ width: `${shoePercent}%` }} />
-              </div>
+              <PoolGrid drawn={shoeStatus.drawn} poolSize={POOL_SIZE} cutAfter={shoeStatus.cutAfter} />
               <span>
                 Pool {shoeStatus.drawn} / {shoeStatus.cutAfter} · reshuffles at the cut
               </span>
@@ -599,7 +709,7 @@ export default function App() {
               <>
                 <span className="result-kicker">Total</span>
                 <span className="result-value" data-testid="text-total">
-                  {sum}
+                  {shownTotal}
                 </span>
                 <span className="result-formula">
                   {pair![0]} + {pair![1]}
@@ -614,6 +724,8 @@ export default function App() {
             )}
           </div>
 
+          <OddsCurve total={sum} rolling={rolling} />
+
           <p className="sr-only" aria-live="polite" aria-atomic="true">
             {rolling
               ? "Generating two numbers."
@@ -624,21 +736,38 @@ export default function App() {
 
           <button
             type="button"
-            className="roll-button"
+            className={`roll-button ${rolling ? "is-charging" : ""}`}
             onClick={generate}
             disabled={rolling}
             aria-label={rolling ? "Generating two numbers" : pair ? "Generate another pair of numbers" : "Generate two numbers"}
             data-testid="button-roll"
           >
-            {rolling ? PHASES[phase] : pair ? "Generate again" : "Generate 2 numbers"}
+            <span className="roll-charge" aria-hidden="true" />
+            <span className="roll-label">{rolling ? PHASES[phase] : pair ? "Generate again" : "Generate 2 numbers"}</span>
           </button>
 
           <div className="portal-foot">
             <span className="roll-count">
               <strong>{totalRolls}</strong> {totalRolls === 1 ? "roll" : "rolls"}
             </span>
+            {pair && !rolling && (
+              <button type="button" className="share-button" onClick={share} disabled={sharing} data-testid="button-share">
+                {sharing ? "Preparing…" : "Share result"}
+              </button>
+            )}
           </div>
         </section>
+
+        <SettingsRow
+          settings={settings}
+          canVibrate={vibrates}
+          canMotion={canMotion}
+          canInstall={installEvent !== null}
+          status={notice}
+          onToggle={toggleSetting}
+          onCycleTheme={cycleTheme}
+          onInstall={installApp}
+        />
 
         <div className="sanity-action">
           <button
@@ -721,22 +850,9 @@ export default function App() {
             <section className="recent-results" aria-labelledby="recent-results-title">
               <div className="recent-heading">
                 <h2 id="recent-results-title">Recent results</h2>
-                <span>Last {Math.min(recentResults.length, 3)}</span>
+                <span>Last {recentResults.length}</span>
               </div>
-              <div className="recent-list">
-                {recentResults.map(({ pair: recentPair, sum: recentSum }, index) => (
-                  <div className="recent-result" key={`${recentPair[0]}-${recentPair[1]}-${index}`}>
-                    <span className="recent-result-index">#0{index + 1}</span>
-                    <span className="recent-result-expression">
-                      <strong>
-                        {recentPair[0]} + {recentPair[1]}
-                      </strong>
-                      <span className="recent-result-equals">=</span>
-                      <strong className="recent-result-total">{recentSum}</strong>
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <HistoryStrip results={recentResults} />
             </section>
 
             <div className="history-actions">
@@ -841,6 +957,8 @@ export default function App() {
                   </div>
                 </div>
               )}
+
+              <TrackerCharts tally={tally} totalRolls={totalRolls} trend={trend} />
 
               <div className="probability-key" aria-label="Probability chart legend">
                 <div>

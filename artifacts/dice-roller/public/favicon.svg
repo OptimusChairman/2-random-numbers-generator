@@ -1,3 +1,17 @@
-<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="180" height="180" rx="36" fill="#FF3C00"/>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="75%">
+      <stop offset="0" stop-color="#1b2766"/>
+      <stop offset="1" stop-color="#060a1f"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f8ff"/>
+      <stop offset="1" stop-color="#8fb8ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="168" cy="256" r="96" stroke="url(#ring)" stroke-width="22"/>
+  <circle cx="344" cy="256" r="96" stroke="url(#ring)" stroke-width="22"/>
+  <rect x="244" y="250" width="24" height="12" rx="2" fill="#f4f8ff"/>
+  <rect x="250" y="244" width="12" height="24" rx="2" fill="#f4f8ff"/>
 </svg>

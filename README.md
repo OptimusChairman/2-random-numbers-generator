@@ -12,6 +12,16 @@ The spinning animation is cosmetic only. The real result is drawn once, when the
 # Sanity check
 "Run sanity check" tests the raw randomness source in a Web Worker, separate from your live pool and history: a chi-square goodness-of-fit test on the totals (10 degrees of freedom) plus a lag-1 correlation test for independence. A fair generator trips it about 1 run in 75, which is why a flagged result offers a 200,000-result recheck.
 
+# What's new in 3.0
+- **Charge-up button** with a press effect, a **sliding mode switch**, a slot-style digit reveal and a counting-up total.
+- **Odds curve** under the total: a glowing dot sits on the 2-12 curve with text like "6 in 36 · 16.67%".
+- **Pool dot grid:** all 540 results as dots (dealt ones dim, the 405 cut marked by a dashed line).
+- **History orbs** for the last 10 results.
+- **Tracker charts:** a histogram of your results over the fair curve, plus a convergence line showing how far you are from the fair odds against what a fair generator typically does.
+- **Themes** (silver, ember, emerald), **haptics** on lock-in (Android; iPhones have no vibration API), **shake to generate** and **tilt parallax** on phones (iPhone asks for motion permission), **share result** as an image, matching app icons, and an **install** button where the browser offers one.
+
+Settings are saved on the device. Shake, tilt, haptics and install only appear on devices that support them.
+
 # A Note for Players:
 If you cannot use physical dice for personal, ethical, or religious reasons, this tool is built specifically for you. It provides a mathematically sound, visually engaging alternative so you can fully participate in your favorite board games—like Catan—with your friends, without ever having to compromise your principles.
 
@@ -23,4 +33,4 @@ pnpm --filter @workspace/dice-roller run typecheck
 PORT=5173 BASE_PATH=/ pnpm --filter @workspace/dice-roller run dev
 PORT=4173 BASE_PATH=/ pnpm --filter @workspace/dice-roller run build
 ```
-The generator and statistics live in `artifacts/dice-roller/src/lib/` (`generator.ts`, `stats.ts`, `sanity.worker.ts`) and take an injectable random source, which is how the tests stay deterministic.
+The generator and statistics live in `artifacts/dice-roller/src/lib/` (`generator.ts`, `stats.ts`, `trend.ts`, `settings.ts`, `sanity.worker.ts`) and take an injectable random source, which is how the tests stay deterministic.
