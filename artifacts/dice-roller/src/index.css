@@ -328,13 +328,34 @@
   position: relative;
   overflow: hidden;
   background:
-    linear-gradient(rgba(var(--t-deep-rgb), var(--t-tint)), rgba(var(--t-deep-rgb), var(--t-tint))),
-    linear-gradient(90deg, rgba(3, 5, 16, .97) 0%, rgba(5, 8, 25, .9) 45%, rgba(5, 7, 19, .5) 100%),
-    linear-gradient(180deg, rgba(4, 6, 17, .62), rgba(8, 8, 26, .84)),
-    url("/images/ultra-instinct-aura-background.webp") 78% center / cover no-repeat,
     radial-gradient(circle at 50% 38%, rgba(49, 62, 115, .36), transparent 34rem),
     radial-gradient(circle at 8% 88%, rgba(20, 146, 147, .13), transparent 25rem),
     linear-gradient(145deg, #050711 0%, #0b1230 56%, #07091a 100%);
+}
+
+/* Theme artwork: a fixed layer, so the picture stays put while the page scrolls. */
+.theme-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(3, 5, 16, .8) 0%, rgba(5, 8, 25, .5) 42%, rgba(5, 7, 19, .08) 100%),
+    linear-gradient(180deg, rgba(4, 6, 17, .22), rgba(8, 8, 26, .42)),
+    var(--t-bg) right center / cover no-repeat,
+    #050711;
+}
+
+.cosmos { --t-bg: var(--t-bg-landscape); }
+
+@media (orientation: portrait) {
+  .cosmos { --t-bg: var(--t-bg-portrait); }
+  .theme-backdrop {
+    background:
+      linear-gradient(180deg, rgba(4, 6, 17, .1) 0%, rgba(4, 6, 17, .3) 38%, rgba(4, 6, 17, .78) 100%),
+      var(--t-bg) center top / cover no-repeat,
+      #050711;
+  }
 }
 
 .cosmos::before {
@@ -1909,6 +1930,8 @@
   --t-accent-soft: #9ccbff;
   --t-light: #bfe0ff;
   --t-tint: 0;
+  --t-bg-landscape: url("/backgrounds/silver-landscape.webp");
+  --t-bg-portrait: url("/backgrounds/silver-portrait.webp");
 }
 .cosmos[data-theme="ember"] {
   --t-deep-rgb: 255, 98, 64;
@@ -1920,7 +1943,9 @@
   --t-accent: #ff9a5a;
   --t-accent-soft: #ffb98a;
   --t-light: #ffd9b8;
-  --t-tint: .26;
+  --t-tint: 0;
+  --t-bg-landscape: url("/backgrounds/ember-landscape.webp");
+  --t-bg-portrait: url("/backgrounds/ember-portrait.webp");
 }
 .cosmos[data-theme="emerald"] {
   --t-deep-rgb: 20, 184, 130;
@@ -1932,7 +1957,9 @@
   --t-accent: #50dcaa;
   --t-accent-soft: #8ef0c8;
   --t-light: #c4ffe9;
-  --t-tint: .24;
+  --t-tint: 0;
+  --t-bg-landscape: url("/backgrounds/emerald-landscape.webp");
+  --t-bg-portrait: url("/backgrounds/emerald-portrait.webp");
 }
 .cosmos::after { translate: var(--tilt-x, 0px) var(--tilt-y, 0px); }
 
@@ -2113,6 +2140,15 @@
   .pool-latest-halo { animation: none; }
   .odds-dot,
   .mode-switch::before { transition: none; }
+}
+
+/* Wide landscape screens: keep the app on the left so the character artwork stays visible. */
+@media (min-width: 1000px) and (orientation: landscape) {
+  .app-shell {
+    width: min(58vw, 860px);
+    margin-left: clamp(24px, 5vw, 110px);
+    margin-right: auto;
+  }
 }
 
 /* --- Calmer path for touch devices and small screens --- */

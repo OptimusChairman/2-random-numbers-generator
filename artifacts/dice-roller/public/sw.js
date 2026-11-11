@@ -1,4 +1,4 @@
-const CACHE_NAME = "two-number-generator-v4";
+const CACHE_NAME = "two-number-generator-v5";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -9,7 +9,6 @@ const APP_SHELL = [
   "/icons/icon-180.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
-  "/images/ultra-instinct-aura-background.webp",
 ];
 
 self.addEventListener("install", (event) => {

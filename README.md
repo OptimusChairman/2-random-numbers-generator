@@ -20,6 +20,8 @@ The spinning animation is cosmetic only. The real result is drawn once, when the
 - **Tracker charts:** a histogram of your results over the fair curve, plus a convergence line showing how far you are from the fair odds against what a fair generator typically does.
 - **Themes** (silver, ember, emerald), **haptics** on lock-in (Android; iPhones have no vibration API), **shake to generate** and **tilt parallax** on phones (iPhone asks for motion permission), **share result** as an image, matching app icons, and an **install** button where the browser offers one.
 
+Each theme has its own portrait and landscape background art (`public/backgrounds/`), chosen by screen orientation; only the active theme's image is downloaded.
+
 Settings are saved on the device. Shake, tilt, haptics and install only appear on devices that support them.
 
 # A Note for Players:

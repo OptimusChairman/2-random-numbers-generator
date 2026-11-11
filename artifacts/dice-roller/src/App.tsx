@@ -589,6 +589,7 @@ export default function App() {
 
   return (
     <main className="cosmos" data-theme={settings.theme} ref={setCosmosEl}>
+      <div className="theme-backdrop" aria-hidden="true" />
       <div className="orb orb-one" aria-hidden="true" />
       <div className="orb orb-two" aria-hidden="true" />
 
