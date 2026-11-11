@@ -40,7 +40,7 @@ export function SettingsRow({ settings, canVibrate, canMotion, canInstall, statu
           Install app
         </button>
       )}
-      <span className="sr-only" aria-live="polite">{status}</span>
+      <p className="settings-status" role="status" aria-live="polite">{status}</p>
     </div>
   );
 }

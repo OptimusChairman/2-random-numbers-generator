@@ -1,7 +1,5 @@
 import { useEffect } from "react";
-
-const SHAKE_THRESHOLD = 17; // change in m/s^2 between two readings
-const SHAKE_COOLDOWN_MS = 1200;
+import { createShakeDetector } from "../lib/shake";
 
 type PermissionedEvent = { requestPermission?: () => Promise<"granted" | "denied"> };
 
@@ -37,13 +35,13 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
  * While enabled: shaking the phone calls `onShake`, and tilting it nudges the starfield
  * through the --tilt-x / --tilt-y custom properties on `target`.
  */
-export function useMotion(enabled: boolean, target: HTMLElement | null, onShake: () => void) {
+export function useMotion(enabled: boolean, target: HTMLElement | null, onShake: () => void, onNoData?: () => void) {
   useEffect(() => {
     if (!enabled || !target) return;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let last = { x: 0, y: 0, z: 0, ready: false };
-    let lastShake = 0;
+    const detect = createShakeDetector();
+    let gotData = false;
     let frame = 0;
     let tiltX = 0;
     let tiltY = 0;
@@ -51,15 +49,8 @@ export function useMotion(enabled: boolean, target: HTMLElement | null, onShake:
     const onMotion = (event: DeviceMotionEvent) => {
       const a = event.accelerationIncludingGravity;
       if (!a || a.x === null || a.y === null || a.z === null) return;
-      if (last.ready) {
-        const delta = Math.abs(a.x - last.x) + Math.abs(a.y - last.y) + Math.abs(a.z - last.z);
-        const now = Date.now();
-        if (delta > SHAKE_THRESHOLD && now - lastShake > SHAKE_COOLDOWN_MS) {
-          lastShake = now;
-          onShake();
-        }
-      }
-      last = { x: a.x, y: a.y, z: a.z, ready: true };
+      gotData = true;
+      if (detect({ x: a.x, y: a.y, z: a.z, time: performance.now() })) onShake();
     };
 
     const paint = () => {
@@ -77,12 +68,18 @@ export function useMotion(enabled: boolean, target: HTMLElement | null, onShake:
 
     window.addEventListener("devicemotion", onMotion);
     if (!reduced) window.addEventListener("deviceorientation", onOrientation);
+    // Some browsers block motion sensors without any error; say so instead of failing quietly.
+    const watchdog = window.setTimeout(() => {
+      if (!gotData) onNoData?.();
+    }, 2500);
+
     return () => {
+      window.clearTimeout(watchdog);
       window.removeEventListener("devicemotion", onMotion);
       window.removeEventListener("deviceorientation", onOrientation);
       if (frame) cancelAnimationFrame(frame);
       target.style.removeProperty("--tilt-x");
       target.style.removeProperty("--tilt-y");
     };
-  }, [enabled, onShake, target]);
+  }, [enabled, onNoData, onShake, target]);
 }

@@ -5,15 +5,17 @@ export function canVibrate(): boolean {
   return typeof navigator !== "undefined" && typeof navigator.vibrate === "function";
 }
 
-export function vibrate(pattern: number | number[]) {
+/** Returns false when the browser refused (no support, blocked, or not allowed yet). */
+export function vibrate(pattern: number | number[]): boolean {
   try {
-    if (canVibrate()) navigator.vibrate(pattern);
+    return canVibrate() ? navigator.vibrate(pattern) : false;
   } catch {
-    // Some browsers throw when vibration is blocked by a policy; ignore.
+    return false;
   }
 }
 
-export const HAPTIC_CHARGE = [10, 30, 14, 30, 18];
-export const HAPTIC_LOCK = 22;
-export const HAPTIC_SPECIAL = [22, 60, 34];
-export const HAPTIC_TAP = 8;
+// Pulses under about 30 ms are too faint to feel on many Android motors, so keep them longer.
+export const HAPTIC_CHARGE = [35, 45, 40, 45, 55];
+export const HAPTIC_LOCK = 70;
+export const HAPTIC_SPECIAL = [80, 70, 130];
+export const HAPTIC_TAP = 35;

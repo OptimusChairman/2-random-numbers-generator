@@ -2025,6 +2025,9 @@
 .theme-swatch-ember { background: linear-gradient(135deg, #ffd9b8, #ff6240); }
 .theme-swatch-emerald { background: linear-gradient(135deg, #c4ffe9, #14b882); }
 
+.settings-status { flex-basis: 100%; min-height: 0; margin: 0; color: rgba(205, 220, 244, .7); font-size: 12px; line-height: 1.5; text-align: center; }
+.settings-status:empty { display: none; }
+
 .share-button {
   padding: 3px 12px;
   border: 1px solid rgba(var(--t-accent-rgb), .4);

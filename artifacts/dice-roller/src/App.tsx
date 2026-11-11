@@ -336,7 +336,9 @@ export default function App() {
       setNotice(`${key === "motion" ? "Shake and tilt" : key === "sound" ? "Sound" : "Haptics"} ${next ? "on" : "off"}.`);
       // Turning these on is a user gesture, so give a short preview.
       if (key === "sound" && next) playLockIn(false);
-      if (key === "haptics" && next) vibrate(HAPTIC_TAP * 3);
+      if (key === "haptics" && next && !vibrate([60, 50, 60])) {
+        setNotice("Haptics on, but this browser blocked vibration. Check that your phone is not in silent or battery-saver mode and that vibration is allowed for the browser.");
+      }
     },
     [settings],
   );
@@ -431,7 +433,17 @@ export default function App() {
   const onShake = useCallback(() => {
     if (!dialogOpenRef.current) generateRef.current();
   }, []);
-  useMotion(settings.motion && canMotion, cosmosEl, onShake);
+  const onNoMotionData = useCallback(() => {
+    setNotice("No motion data is coming from this browser. In Chrome: Settings, Site settings, Motion sensors, then allow it for this site.");
+  }, []);
+  useMotion(settings.motion && canMotion, cosmosEl, onShake, onNoMotionData);
+
+  // Messages from the settings chips fade after a few seconds.
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(""), 6000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   useEffect(() => {
     const handleSpacebar = (event: KeyboardEvent) => {
