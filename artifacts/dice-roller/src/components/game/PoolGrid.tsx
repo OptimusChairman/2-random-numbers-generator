@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { dotsPath, type Point } from "../../lib/charts";
 
 const COLS = 45; // 45 x 12 = 540, and the 405 cut lands exactly on a row boundary
@@ -9,7 +9,7 @@ const RADIUS = 2.6;
  * The balanced pool as 540 dots. Dealt dots dim, the latest one glows, and a dashed line
  * marks the cut: dots below it are never dealt before the pool is reshuffled.
  */
-export function PoolGrid({ drawn, poolSize, cutAfter }: { drawn: number; poolSize: number; cutAfter: number }) {
+function PoolGridInner({ drawn, poolSize, cutAfter }: { drawn: number; poolSize: number; cutAfter: number }) {
   const rows = Math.ceil(poolSize / COLS);
   const cutRow = cutAfter / COLS;
   const width = COLS * PITCH;
@@ -51,3 +51,5 @@ export function PoolGrid({ drawn, poolSize, cutAfter }: { drawn: number; poolSiz
     </svg>
   );
 }
+
+export const PoolGrid = memo(PoolGridInner);

@@ -2042,17 +2042,17 @@
 .portal-foot { align-items: center; }
 
 /* --- Odds curve under the total --- */
-.odds-curve { max-width: 300px; margin: 16px auto 20px; text-align: center; }
+.odds-curve { contain: layout paint; max-width: 300px; margin: 16px auto 20px; text-align: center; }
 .odds-curve svg { display: block; width: 100%; height: auto; overflow: visible; }
 .odds-baseline { fill: none; stroke: rgba(205, 220, 244, .18); stroke-width: 1; }
-.odds-line { fill: none; stroke: var(--t-accent); stroke-width: 2; stroke-linecap: round; filter: drop-shadow(0 0 4px rgba(var(--t-accent-rgb), .55)); }
+.odds-line { fill: none; stroke: var(--t-accent); stroke-width: 2; stroke-linecap: round; }
 .odds-tick { fill: rgba(205, 220, 244, .4); }
 .odds-label { fill: rgba(205, 220, 244, .5); font-family: var(--app-font-mono); font-size: 9px; }
 .odds-dot { transition: transform .55s cubic-bezier(.3, 1.25, .4, 1); }
 .odds-dot.is-scanning { transition-duration: .09s; }
 .odds-drop { stroke: rgba(var(--t-accent-rgb), .4); stroke-dasharray: 2 3; stroke-width: 1; }
 .odds-dot-halo { fill: rgba(var(--t-accent-rgb), .28); transform-box: fill-box; transform-origin: center; animation: haloPulse 1.8s ease-in-out infinite; }
-.odds-dot-core { fill: #fff; filter: drop-shadow(0 0 5px var(--t-accent)); }
+.odds-dot-core { fill: #fff; }
 .odds-curve figcaption { min-height: 1.5em; margin-top: 4px; color: rgba(205, 220, 244, .6); font-family: var(--app-font-mono); font-size: 11px; letter-spacing: .04em; }
 .odds-curve figcaption strong { color: var(--t-light); font-weight: 600; }
 @keyframes haloPulse { 0%, 100% { transform: scale(.8); opacity: .7; } 50% { transform: scale(1.15); opacity: 1; } }
@@ -2063,7 +2063,7 @@
 .pool-dot-upcoming { fill: rgba(var(--t-accent-rgb), .78); }
 .pool-dot-tail { fill: rgba(var(--t-deep-rgb), .3); }
 .pool-cut { stroke: rgba(255, 255, 255, .38); stroke-width: 1; stroke-dasharray: 3 4; }
-.pool-latest { fill: #fff; filter: drop-shadow(0 0 4px var(--t-accent)); }
+.pool-latest { fill: #fff; }
 .pool-latest-halo { fill: rgba(var(--t-accent-rgb), .4); transform-box: fill-box; transform-origin: center; animation: poolPop .6s ease-out both; }
 @keyframes poolPop { from { transform: scale(.2); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
 
@@ -2097,8 +2097,8 @@
 .chart-bar { fill: rgba(var(--t-deep-rgb), .75); }
 .chart-bar.is-over { fill: var(--t-accent); }
 .chart-expected { fill: none; stroke: rgba(255, 255, 255, .85); stroke-width: 1.5; stroke-dasharray: 4 3; stroke-linecap: round; }
-.chart-trend { fill: none; stroke: var(--t-accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; filter: drop-shadow(0 0 4px rgba(var(--t-accent-rgb), .55)); }
-.chart-trend-dot { fill: #fff; filter: drop-shadow(0 0 5px var(--t-accent)); }
+.chart-trend { fill: none; stroke: var(--t-accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart-trend-dot { fill: #fff; }
 .chart-note, .chart-empty { margin: 6px 0 2px; color: rgba(205, 220, 244, .62); font-size: 12px; line-height: 1.5; }
 .chart-note strong { color: var(--t-light); }
 

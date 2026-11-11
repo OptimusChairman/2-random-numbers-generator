@@ -1,9 +1,10 @@
+import { memo } from "react";
 import type { Pair } from "../../lib/generator";
 
 export type Result = { pair: Pair; sum: number };
 
 /** The last results as glowing orbs: newest first, brightest and largest. */
-export function HistoryStrip({ results }: { results: Result[] }) {
+function HistoryStripInner({ results }: { results: Result[] }) {
   return (
     <ol className="history-strip" aria-label="Recent results, newest first">
       {results.map(({ pair, sum }, index) => (
@@ -23,3 +24,5 @@ export function HistoryStrip({ results }: { results: Result[] }) {
     </ol>
   );
 }
+
+export const HistoryStrip = memo(HistoryStripInner);
