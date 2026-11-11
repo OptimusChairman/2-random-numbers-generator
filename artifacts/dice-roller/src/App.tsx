@@ -343,6 +343,14 @@ export default function App() {
     [settings],
   );
 
+  const testHaptics = useCallback(() => {
+    setNotice(
+      vibrate([60, 50, 60, 50, 120])
+        ? "Buzz sent. If you felt nothing, check that your phone is not in silent or battery-saver mode."
+        : "This browser blocked vibration.",
+    );
+  }, []);
+
   const cycleTheme = useCallback(() => {
     setSettings((previous) => ({ ...previous, theme: nextTheme(previous.theme) }));
     if (hapticsOn) vibrate(HAPTIC_TAP);
@@ -779,6 +787,7 @@ export default function App() {
           onToggle={toggleSetting}
           onCycleTheme={cycleTheme}
           onInstall={installApp}
+          onTestHaptics={testHaptics}
         />
 
         <div className="sanity-action">

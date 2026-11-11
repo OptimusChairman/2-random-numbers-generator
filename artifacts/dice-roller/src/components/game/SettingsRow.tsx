@@ -9,10 +9,11 @@ type Props = {
   onToggle: (key: "sound" | "haptics" | "motion") => void;
   onCycleTheme: () => void;
   onInstall: () => void;
+  onTestHaptics: () => void;
 };
 
 /** Compact row of toggles. Chips only appear when the device can actually do the thing. */
-export function SettingsRow({ settings, canVibrate, canMotion, canInstall, status, onToggle, onCycleTheme, onInstall }: Props) {
+export function SettingsRow({ settings, canVibrate, canMotion, canInstall, status, onToggle, onCycleTheme, onInstall, onTestHaptics }: Props) {
   return (
     <div className="settings-row" role="group" aria-label="Settings">
       <button type="button" className={`chip ${settings.sound ? "is-on" : ""}`} aria-pressed={settings.sound} onClick={() => onToggle("sound")} data-testid="button-sound">
@@ -23,6 +24,11 @@ export function SettingsRow({ settings, canVibrate, canMotion, canInstall, statu
         <button type="button" className={`chip ${settings.haptics ? "is-on" : ""}`} aria-pressed={settings.haptics} onClick={() => onToggle("haptics")} data-testid="button-haptics">
           <span className="chip-dot" aria-hidden="true" />
           Haptics
+        </button>
+      )}
+      {canVibrate && settings.haptics && (
+        <button type="button" className="chip" onClick={onTestHaptics} data-testid="button-test-haptics">
+          Test buzz
         </button>
       )}
       {canMotion && (
