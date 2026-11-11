@@ -18,7 +18,7 @@ The spinning animation is cosmetic only. The real result is drawn once, when the
 - **Pool dot grid:** all 540 results as dots (dealt ones dim, the 405 cut marked by a dashed line).
 - **History orbs** for the last 10 results.
 - **Tracker charts:** a histogram of your results over the fair curve, plus a convergence line showing how far you are from the fair odds against what a fair generator typically does.
-- **Themes** (silver, ember, emerald), **haptics** on lock-in (Android; iPhones have no vibration API), **shake to generate** and **tilt parallax** on phones (iPhone asks for motion permission), **share result** as an image, matching app icons, and an **install** button where the browser offers one.
+- **Themes** (silver, ember, emerald), **haptics** on lock-in (Android; iPhones have no vibration API), **shake to generate** and **tilt parallax** on phones (iPhone asks for motion permission), **share result** as an image (with the theme's artwork behind it), matching app icons, an **install** button where the browser offers one, and an **Artwork** switch that turns the character backgrounds off (nothing is downloaded, and the share image goes back to the plain starfield).
 
 Each theme has its own portrait and landscape background art (`public/backgrounds/`), chosen by screen orientation; only the active theme's image is downloaded.
 

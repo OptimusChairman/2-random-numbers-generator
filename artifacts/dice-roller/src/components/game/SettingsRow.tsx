@@ -6,7 +6,7 @@ type Props = {
   canMotion: boolean;
   canInstall: boolean;
   status: string;
-  onToggle: (key: "sound" | "haptics" | "motion") => void;
+  onToggle: (key: "sound" | "haptics" | "motion" | "artwork") => void;
   onCycleTheme: () => void;
   onInstall: () => void;
   onTestHaptics: () => void;
@@ -37,6 +37,10 @@ export function SettingsRow({ settings, canVibrate, canMotion, canInstall, statu
           Shake
         </button>
       )}
+      <button type="button" className={`chip ${settings.artwork ? "is-on" : ""}`} aria-pressed={settings.artwork} onClick={() => onToggle("artwork")} data-testid="button-artwork">
+        <span className="chip-dot" aria-hidden="true" />
+        Artwork
+      </button>
       <button type="button" className="chip chip-theme" onClick={onCycleTheme} aria-label={`Color theme: ${THEME_LABELS[settings.theme]}. Tap to change.`} data-testid="button-theme">
         <span className={`theme-swatch theme-swatch-${settings.theme}`} aria-hidden="true" />
         {THEME_LABELS[settings.theme]}

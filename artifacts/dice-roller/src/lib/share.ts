@@ -22,7 +22,23 @@ function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.closePath();
 }
 
-export function drawShareCard(canvas: HTMLCanvasElement, pair: Pair, theme: ShareTheme, version: string) {
+/** Loads the theme's portrait artwork; resolves null when it cannot be loaded. */
+function loadArt(theme: ShareTheme): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = `/backgrounds/${theme}-portrait.webp`;
+  });
+}
+
+export function drawShareCard(
+  canvas: HTMLCanvasElement,
+  pair: Pair,
+  theme: ShareTheme,
+  version: string,
+  art: HTMLImageElement | null = null,
+) {
   const size = SHARE_SIZE;
   canvas.width = size;
   canvas.height = size;
@@ -38,7 +54,22 @@ export function drawShareCard(canvas: HTMLCanvasElement, pair: Pair, theme: Shar
   ctx.fillStyle = background;
   ctx.fillRect(0, 0, size, size);
 
-  const glow = ctx.createRadialGradient(size / 2, size * 0.46, 20, size / 2, size * 0.46, size * 0.55);
+  if (art) {
+    // Portrait artwork fitted to the card width: the character floats at the top, the middle stays dark.
+    ctx.drawImage(art, 0, 0, size, (size * art.naturalHeight) / art.naturalWidth);
+    const shade = ctx.createLinearGradient(0, 0, 0, size);
+    shade.addColorStop(0, "rgba(5,7,17,0)");
+    shade.addColorStop(0.42, "rgba(5,7,17,.38)");
+    shade.addColorStop(1, "rgba(5,7,17,.82)");
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, 0, size, size);
+  }
+
+  const cy = art ? size * 0.56 : size * 0.46;
+  const radius = art ? 175 : 190;
+  const boxY = art ? 815 : 745;
+
+  const glow = ctx.createRadialGradient(size / 2, cy, 20, size / 2, cy, size * 0.55);
   glow.addColorStop(0, `${palette.deep}55`);
   glow.addColorStop(1, "transparent");
   ctx.fillStyle = glow;
@@ -46,7 +77,7 @@ export function drawShareCard(canvas: HTMLCanvasElement, pair: Pair, theme: Shar
 
   // A few fixed "stars" so the card is stable between renders.
   ctx.fillStyle = "rgba(255,255,255,.7)";
-  for (let i = 0; i < 70; i += 1) {
+  for (let i = 0; i < (art ? 0 : 70); i += 1) {
     const x = (i * 137.5) % size;
     const y = (i * 71.3 + (i % 7) * 97) % size;
     ctx.fillRect(x, y, i % 5 === 0 ? 3 : 2, i % 5 === 0 ? 3 : 2);
@@ -57,12 +88,11 @@ export function drawShareCard(canvas: HTMLCanvasElement, pair: Pair, theme: Shar
 
   ctx.fillStyle = palette.soft;
   ctx.font = "600 34px 'Space Grotesk', system-ui, sans-serif";
-  ctx.fillText("T W O   R A N D O M   N U M B E R S", size / 2, 150);
+  if (!art) ctx.fillText("T W O   R A N D O M   N U M B E R S", size / 2, 150);
 
-  const radius = 190;
   const centers: Array<[number, number]> = [
-    [size / 2 - 250, size * 0.46],
-    [size / 2 + 250, size * 0.46],
+    [size / 2 - 250, cy],
+    [size / 2 + 250, cy],
   ];
   centers.forEach(([cx, cy], index) => {
     const ring = ctx.createRadialGradient(cx, cy, radius * 0.6, cx, cy, radius + 40);
@@ -98,11 +128,11 @@ export function drawShareCard(canvas: HTMLCanvasElement, pair: Pair, theme: Shar
   // The plus is drawn as two bars so it sits exactly between the circles.
   ctx.fillStyle = "#f4f8ff";
   const px = size / 2;
-  const py = size * 0.46;
+  const py = cy;
   ctx.fillRect(px - 34, py - 5, 68, 10);
   ctx.fillRect(px - 5, py - 34, 10, 68);
 
-  roundedRect(ctx, size / 2 - 230, 745, 460, 150, 34);
+  roundedRect(ctx, size / 2 - 230, boxY, 460, 150, 34);
   ctx.fillStyle = "rgba(120,150,255,.12)";
   ctx.fill();
   ctx.lineWidth = 2;
@@ -110,14 +140,18 @@ export function drawShareCard(canvas: HTMLCanvasElement, pair: Pair, theme: Shar
   ctx.stroke();
   ctx.fillStyle = "rgba(205,220,244,.7)";
   ctx.font = "500 30px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillText("TOTAL", size / 2 - 120, 820);
+  ctx.fillText("TOTAL", size / 2 - 120, boxY + 75);
   ctx.fillStyle = "#f4f8ff";
   ctx.font = "700 100px 'Space Grotesk', system-ui, sans-serif";
-  ctx.fillText(String(total), size / 2 + 70, 826);
+  ctx.fillText(String(total), size / 2 + 70, boxY + 81);
 
   ctx.fillStyle = "rgba(205,220,244,.55)";
   ctx.font = "500 28px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillText(`${pair[0]} + ${pair[1]}  ·  version ${version}`, size / 2, 975);
+  if (art) {
+    ctx.fillText(`TWO RANDOM NUMBERS  ·  VERSION ${version}`, size / 2, 1030);
+  } else {
+    ctx.fillText(`${pair[0]} + ${pair[1]}  ·  version ${version}`, size / 2, 975);
+  }
 }
 
 function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
@@ -129,9 +163,9 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 export type ShareOutcome = "shared" | "downloaded" | "cancelled";
 
 /** Share the card with the native sheet when possible, otherwise download it. */
-export async function shareResult(pair: Pair, theme: ShareTheme, version: string): Promise<ShareOutcome> {
+export async function shareResult(pair: Pair, theme: ShareTheme, version: string, withArt = true): Promise<ShareOutcome> {
   const canvas = document.createElement("canvas");
-  drawShareCard(canvas, pair, theme, version);
+  drawShareCard(canvas, pair, theme, version, withArt ? await loadArt(theme) : null);
   const blob = await canvasToBlob(canvas);
   const file = new File([blob], `numbers-${pair[0]}-${pair[1]}.png`, { type: "image/png" });
 

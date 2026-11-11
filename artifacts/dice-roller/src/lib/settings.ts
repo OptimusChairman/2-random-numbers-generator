@@ -1,4 +1,4 @@
-// Player settings: sound, haptics, motion (shake + tilt), and color theme.
+// Player settings: sound, haptics, motion (shake + tilt), artwork, and color theme.
 // Stored in one localStorage entry; every read is validated.
 
 export const THEMES = ["silver", "ember", "emerald"] as const;
@@ -15,6 +15,8 @@ export type Settings = {
   haptics: boolean;
   /** Shake the phone to generate, and tilt it to shift the starfield. */
   motion: boolean;
+  /** Show the character artwork behind the app. Off saves data and keeps the page plain. */
+  artwork: boolean;
   theme: Theme;
 };
 
@@ -26,6 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sound: false,
   haptics: true,
   motion: false,
+  artwork: true,
   theme: "silver",
 };
 
@@ -58,6 +61,7 @@ export function loadSettings(storage: StorageLike | null = defaultStorage()): Se
       if (typeof parsed.sound === "boolean") settings.sound = parsed.sound;
       if (typeof parsed.haptics === "boolean") settings.haptics = parsed.haptics;
       if (typeof parsed.motion === "boolean") settings.motion = parsed.motion;
+      if (typeof parsed.artwork === "boolean") settings.artwork = parsed.artwork;
       if (isTheme(parsed.theme)) settings.theme = parsed.theme;
       return settings;
     }

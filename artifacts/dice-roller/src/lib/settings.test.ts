@@ -31,7 +31,7 @@ describe("loadSettings", () => {
 
   it("round-trips saved settings", () => {
     const storage = fakeStorage();
-    const settings = { sound: true, haptics: false, motion: true, theme: "ember" as const };
+    const settings = { sound: true, haptics: false, motion: true, artwork: false, theme: "ember" as const };
     saveSettings(settings, storage);
     expect(loadSettings(storage)).toEqual(settings);
   });
@@ -41,6 +41,12 @@ describe("loadSettings", () => {
       [SETTINGS_KEY]: JSON.stringify({ sound: "yes", haptics: false, motion: 1, theme: "neon" }),
     });
     expect(loadSettings(storage)).toEqual({ ...DEFAULT_SETTINGS, haptics: false });
+  });
+
+  it("keeps artwork on unless it was switched off", () => {
+    expect(loadSettings(fakeStorage()).artwork).toBe(true);
+    expect(loadSettings(fakeStorage({ [SETTINGS_KEY]: JSON.stringify({ artwork: false }) })).artwork).toBe(false);
+    expect(loadSettings(fakeStorage({ [SETTINGS_KEY]: JSON.stringify({ artwork: "no" }) })).artwork).toBe(true);
   });
 
   it("survives corrupted JSON", () => {

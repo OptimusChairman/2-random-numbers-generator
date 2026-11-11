@@ -323,7 +323,7 @@ export default function App() {
   }, []);
 
   const toggleSetting = useCallback(
-    async (key: "sound" | "haptics" | "motion") => {
+    async (key: "sound" | "haptics" | "motion" | "artwork") => {
       const next = !settings[key];
       if (key === "motion" && next) {
         // iPhones only allow motion access from inside a tap.
@@ -334,7 +334,7 @@ export default function App() {
         }
       }
       setSettings((previous) => ({ ...previous, [key]: next }));
-      setNotice(`${key === "motion" ? "Shake and tilt" : key === "sound" ? "Sound" : "Haptics"} ${next ? "on" : "off"}.`);
+      setNotice(`${key === "motion" ? "Shake and tilt" : key === "sound" ? "Sound" : key === "artwork" ? "Artwork" : "Haptics"} ${next ? "on" : "off"}.`);
       // Turning these on is a user gesture, so give a short preview.
       if (key === "sound" && next) playLockIn(false);
       if (key === "haptics" && next && !vibrate([60, 50, 60])) {
@@ -372,14 +372,14 @@ export default function App() {
     if (!pair || sharing) return;
     setSharing(true);
     try {
-      const outcome = await shareResult(pair, settings.theme, APP_VERSION);
+      const outcome = await shareResult(pair, settings.theme, APP_VERSION, settings.artwork);
       if (outcome === "downloaded") setNotice("Result image saved.");
     } catch {
       setNotice("Could not create the result image.");
     } finally {
       setSharing(false);
     }
-  }, [pair, settings.theme, sharing]);
+  }, [pair, settings.artwork, settings.theme, sharing]);
 
   const generate = useCallback(() => {
     const generator = generatorRef.current;
@@ -613,7 +613,7 @@ export default function App() {
 
   return (
     <main className="cosmos" data-theme={settings.theme} ref={setCosmosEl}>
-      <ThemeBackdrop theme={settings.theme} />
+      {settings.artwork && <ThemeBackdrop theme={settings.theme} />}
       <div className="orb orb-one" aria-hidden="true" />
       <div className="orb orb-two" aria-hidden="true" />
 

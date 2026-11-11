@@ -131,6 +131,24 @@ const rollOnce = async (page) => {
   await context.close();
 }
 
+// 7. Artwork switch: off removes the backdrop and stays off after a reload.
+{
+  const { context, page, problems } = await newPage(devices["Pixel 7"]);
+  await page.goto(BASE);
+  await page.waitForTimeout(600);
+  const onCount = await page.locator(".theme-backdrop").count();
+  await page.click('[data-testid="button-artwork"]');
+  await page.waitForTimeout(200);
+  const offCount = await page.locator(".theme-backdrop").count();
+  await page.reload();
+  await page.waitForTimeout(500);
+  const stays = await page.getAttribute('[data-testid="button-artwork"]', "aria-pressed");
+  check("artwork switch removes the backdrop", onCount === 1 && offCount === 0, `${onCount} -> ${offCount}`);
+  check("artwork switch is remembered after reload", stays === "false" && (await page.locator(".theme-backdrop").count()) === 0);
+  check("no console errors (artwork switch)", problems.length === 0, problems.join(" | "));
+  await context.close();
+}
+
 await browser.close();
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} checks passed`);
