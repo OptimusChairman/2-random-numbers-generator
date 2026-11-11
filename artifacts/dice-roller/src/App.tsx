@@ -15,7 +15,7 @@ import {
 import {
   SUM_VALUES,
   expectedShare,
-  runSanityCheck,
+  createSanityRun,
   variationBand,
   type SanityReport,
 } from "./lib/stats";
@@ -510,12 +510,22 @@ export default function App() {
       setSanityResult(null);
       setSanityProgress(0);
 
-      // Fallback for environments without module workers: same check, main thread.
+      // Fallback for browsers that cannot start the worker: same check on the main thread, but
+      // in small steps so the page stays responsive and the percentage keeps moving.
       const runInline = () => {
-        sanityTimeoutRef.current = setTimeout(() => {
-          sanityTimeoutRef.current = null;
-          finishSanity(runSanityCheck({ rolls, isRecheck }));
-        }, 0);
+        const run = createSanityRun({ rolls, isRecheck });
+        const STEP = 2_000;
+        const step = () => {
+          const done = run.advance(STEP);
+          setSanityProgress(done / rolls);
+          if (done < rolls) {
+            sanityTimeoutRef.current = setTimeout(step, 0);
+          } else {
+            sanityTimeoutRef.current = null;
+            finishSanity(run.report());
+          }
+        };
+        sanityTimeoutRef.current = setTimeout(step, 0);
       };
 
       if (typeof Worker === "undefined") {
@@ -526,15 +536,28 @@ export default function App() {
       try {
         const worker = new Worker(new URL("./lib/sanity.worker.ts", import.meta.url), { type: "module" });
         workerRef.current = worker;
+        let heardFromWorker = false;
+        let fellBack = false;
         const fallBack = () => {
+          if (fellBack) return;
+          fellBack = true;
+          window.clearTimeout(watchdog);
           worker.terminate();
           workerRef.current = null;
           runInline();
         };
+        // If the worker never answers (blocked or failed to start), run the check here instead.
+        const watchdog = window.setTimeout(() => {
+          if (!heardFromWorker) fallBack();
+        }, 4000);
         worker.onmessage = (event: MessageEvent<SanityWorkerResponse>) => {
+          heardFromWorker = true;
           const message = event.data;
           if (message.type === "progress") setSanityProgress(message.completed / message.total);
-          else if (message.type === "done") finishSanity(message.report);
+          else if (message.type === "done") {
+            window.clearTimeout(watchdog);
+            finishSanity(message.report);
+          }
           else fallBack();
         };
         worker.onerror = fallBack;
@@ -798,9 +821,13 @@ export default function App() {
             className="sanity-check-button"
             onClick={() => runSanity()}
             disabled={sanityRunning}
-            aria-label={sanityRunning ? "Running sanity check" : "Run sanity check"}
+            aria-label={sanityRunning ? `Running sanity check, ${Math.round(sanityProgress * 100)} percent` : "Run sanity check"}
+            style={{ ["--progress" as string]: sanityProgress }}
           >
-            {sanityRunning ? `Checking… ${Math.round(sanityProgress * 100)}%` : "Run sanity check"}
+            <span className="sanity-fill" aria-hidden="true" />
+            <span className="sanity-label">
+              {sanityRunning ? `Checking… ${Math.round(sanityProgress * 100)}%` : "Run sanity check"}
+            </span>
           </button>
           <span>Diagnostic only · tests the raw randomness · saved history and pool stay unchanged</span>
         </div>

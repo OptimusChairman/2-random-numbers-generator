@@ -97,13 +97,19 @@ export type SanityOptions = {
   onProgress?: (completed: number, total: number) => void;
 };
 
+export type SanityRun = {
+  readonly rolls: number;
+  /** Draws up to `count` more results; returns how many have been drawn in total. */
+  advance(count: number): number;
+  report(): SanityReport;
+};
+
 /**
- * Tests the raw randomness source: draws independent pairs from a private
- * "pure" generator (never the live shoe) and checks the totals' distribution
- * and the lag-1 correlation between consecutive totals.
+ * The same check as runSanityCheck, but resumable: the caller draws results in small
+ * steps, so it can report progress and yield to the browser between steps.
  */
-export function runSanityCheck(options: SanityOptions): SanityReport {
-  const { rolls, isRecheck = false, randomInt, chunkSize = 5_000, onProgress } = options;
+export function createSanityRun(options: Pick<SanityOptions, "rolls" | "isRecheck" | "randomInt">): SanityRun {
+  const { rolls, isRecheck = false, randomInt } = options;
   const generator = createGenerator({ mode: "pure", randomInt });
 
   const tally: Record<number, number> = {};
@@ -114,71 +120,92 @@ export function runSanityCheck(options: SanityOptions): SanityReport {
   let sumXY = 0;
   let sumXX = 0;
   let sumYY = 0;
-
-  for (let completed = 0; completed < rolls; completed += 1) {
-    const [a, b] = generator.next();
-    const total = a + b;
-    tally[total] = (tally[total] ?? 0) + 1;
-
-    if (previous !== null) {
-      n += 1;
-      sumX += previous;
-      sumY += total;
-      sumXY += previous * total;
-      sumXX += previous * previous;
-      sumYY += total * total;
-    }
-    previous = total;
-
-    if (onProgress && (completed + 1) % chunkSize === 0) onProgress(completed + 1, rolls);
-  }
-  onProgress?.(rolls, rolls);
-
-  let serialCorrelation = 0;
-  if (n > 1) {
-    const covariance = sumXY - (sumX * sumY) / n;
-    const varianceX = sumXX - (sumX * sumX) / n;
-    const varianceY = sumYY - (sumY * sumY) / n;
-    const denominator = Math.sqrt(varianceX * varianceY);
-    serialCorrelation = denominator === 0 ? 0 : covariance / denominator;
-  }
-  const serialZ = serialCorrelation * Math.sqrt(Math.max(n, 1));
-
-  const chiSquare = chiSquareOfSums(tally, rolls);
-  const pValue = chiSquarePValueDf10(chiSquare);
-
-  let maxDifference = -1;
-  let worstTotal = 7;
-  let actualPct = 0;
-  let expectedPct = 0;
-  for (const total of SUM_VALUES) {
-    const actual = ((tally[total] ?? 0) / rolls) * 100;
-    const expected = expectedShare(total) * 100;
-    const difference = Math.abs(actual - expected);
-    if (difference > maxDifference) {
-      maxDifference = difference;
-      worstTotal = total;
-      actualPct = actual;
-      expectedPct = expected;
-    }
-  }
-
-  const failures: SanityReport["failures"] = [];
-  if (pValue < P_VALUE_THRESHOLD) failures.push("distribution");
-  if (Math.abs(serialZ) > SERIAL_Z_LIMIT) failures.push("independence");
+  let completed = 0;
 
   return {
     rolls,
-    passed: failures.length === 0,
-    isRecheck,
-    chiSquare,
-    pValue,
-    serialCorrelation,
-    serialZ,
-    worstTotal,
-    maxDifference,
-    actualPct,
-    expectedPct,
-    failures,
+    advance(count) {
+      const end = Math.min(rolls, completed + count);
+      for (; completed < end; completed += 1) {
+        const [a, b] = generator.next();
+        const total = a + b;
+        tally[total] = (tally[total] ?? 0) + 1;
+
+        if (previous !== null) {
+          n += 1;
+          sumX += previous;
+          sumY += total;
+          sumXY += previous * total;
+          sumXX += previous * previous;
+          sumYY += total * total;
+        }
+        previous = total;
+      }
+      return completed;
+    },
+    report() {
+
+      let serialCorrelation = 0;
+      if (n > 1) {
+        const covariance = sumXY - (sumX * sumY) / n;
+        const varianceX = sumXX - (sumX * sumX) / n;
+        const varianceY = sumYY - (sumY * sumY) / n;
+        const denominator = Math.sqrt(varianceX * varianceY);
+        serialCorrelation = denominator === 0 ? 0 : covariance / denominator;
+      }
+      const serialZ = serialCorrelation * Math.sqrt(Math.max(n, 1));
+
+      const chiSquare = chiSquareOfSums(tally, rolls);
+      const pValue = chiSquarePValueDf10(chiSquare);
+
+      let maxDifference = -1;
+      let worstTotal = 7;
+      let actualPct = 0;
+      let expectedPct = 0;
+      for (const total of SUM_VALUES) {
+        const actual = ((tally[total] ?? 0) / rolls) * 100;
+        const expected = expectedShare(total) * 100;
+        const difference = Math.abs(actual - expected);
+        if (difference > maxDifference) {
+          maxDifference = difference;
+          worstTotal = total;
+          actualPct = actual;
+          expectedPct = expected;
+        }
+      }
+
+      const failures: SanityReport["failures"] = [];
+      if (pValue < P_VALUE_THRESHOLD) failures.push("distribution");
+      if (Math.abs(serialZ) > SERIAL_Z_LIMIT) failures.push("independence");
+
+      return {
+        rolls,
+        passed: failures.length === 0,
+        isRecheck,
+        chiSquare,
+        pValue,
+        serialCorrelation,
+        serialZ,
+        worstTotal,
+        maxDifference,
+        actualPct,
+        expectedPct,
+        failures,
+      };
+
+    },
   };
+}
+
+/**
+ * Tests the raw randomness source: draws independent pairs from a private
+ * "pure" generator (never the live shoe) and checks the totals' distribution
+ * and the lag-1 correlation between consecutive totals.
+ */
+export function runSanityCheck(options: SanityOptions): SanityReport {
+  const { rolls, chunkSize = 5_000, onProgress } = options;
+  const run = createSanityRun(options);
+  while (run.advance(chunkSize) < rolls) onProgress?.(run.advance(0), rolls);
+  onProgress?.(rolls, rolls);
+  return run.report();
 }

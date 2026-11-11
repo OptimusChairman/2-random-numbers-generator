@@ -998,9 +998,21 @@
   background: rgba(87, 133, 218, .18);
 }
 
+.sanity-check-button { position: relative; overflow: hidden; }
+.sanity-label { position: relative; z-index: 1; }
+.sanity-fill {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(var(--progress, 0));
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgba(var(--t-deep-rgb), .18), rgba(var(--t-accent-rgb), .42));
+  transition: transform .12s linear;
+  pointer-events: none;
+}
+
 .sanity-check-button:disabled {
   cursor: wait;
-  opacity: .58;
+  opacity: .9;
 }
 
 .roll-button:focus-visible,

@@ -8,6 +8,7 @@ import {
   chiSquareOfSums,
   chiSquarePValueDf10,
   expectedShare,
+  createSanityRun,
   runSanityCheck,
   variationBand,
 } from "./stats";
@@ -99,5 +100,27 @@ describe("runSanityCheck", () => {
     expect(report.rolls).toBe(20_000);
     expect(steps[steps.length - 1]).toBe(20_000);
     expect(steps.length).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("createSanityRun", () => {
+  it("gives the same report whether drawn in one go or in small steps", () => {
+    const whole = runSanityCheck({ rolls: 20_000, randomInt: seededRandomInt(99) });
+    const run = createSanityRun({ rolls: 20_000, randomInt: seededRandomInt(99) });
+    const seen: number[] = [];
+    let done = 0;
+    while (done < 20_000) {
+      done = run.advance(1_500);
+      seen.push(done);
+    }
+    expect(run.report()).toEqual(whole);
+    expect(seen.length).toBeGreaterThan(10);
+    expect(seen[seen.length - 1]).toBe(20_000);
+  });
+
+  it("never draws past the requested number of results", () => {
+    const run = createSanityRun({ rolls: 1_000, randomInt: seededRandomInt(5) });
+    expect(run.advance(5_000)).toBe(1_000);
+    expect(run.advance(5_000)).toBe(1_000);
   });
 });
