@@ -2208,15 +2208,6 @@
   letter-spacing: -.01em;
   text-transform: none;
 }
-.brand-version {
-  padding: 2px 9px;
-  border: 1px solid rgba(var(--t-line-rgb), .34);
-  border-radius: 999px;
-  color: var(--t-ink-dim);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0;
-}
 .brand-symbol { border-color: rgba(var(--t-line-rgb), .6); box-shadow: 0 0 0 5px rgba(var(--t-line-rgb), .08); }
 
 .hero { max-width: 780px; }
@@ -2526,7 +2517,6 @@
 .distribution-expected { background: rgba(var(--t-line-rgb), .12); }
 .distribution-fill { background: linear-gradient(90deg, var(--t-deep), var(--t-light)); }
 .stats-legend { color: var(--t-ink-faint); font-size: 12px; }
-.brand-version { background: rgba(var(--t-surface-rgb), .5); }
 .confirm-dialog h2 { color: var(--t-ink); font-weight: 600; }
 .confirm-dialog > p:not(.modal-overline) { color: var(--t-ink-dim); font-family: "Manrope", sans-serif; font-size: 13.5px; }
 .modal-secondary,
@@ -2564,17 +2554,6 @@
   gap: 10px;
   margin-bottom: 4px;
 }
-.portal-stage .portal-label span:last-child::before {
-  content: "";
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin-right: 8px;
-  border-radius: 50%;
-  vertical-align: middle;
-  background: var(--t-accent);
-  box-shadow: 0 0 8px var(--t-accent);
-}
 
 .portal-stage .number-stage { --ring: clamp(124px, 35vw, 200px); gap: clamp(10px, 3.2vw, 56px); padding-block: clamp(26px, 5vw, 44px) clamp(18px, 3vw, 26px); }
 @media (max-width: 380px) { .portal-stage .number-stage { --ring: 104px; } }
@@ -2605,8 +2584,6 @@
 .portal-stage .result-band > * { height: 52px; line-height: 52px; }
 
 /* Fixed-width slots: text that changes between states never pushes its neighbours. */
-.portal-stage .portal-label span:first-child { min-width: 78px; text-align: right; }
-.portal-stage .portal-label span:last-child { min-width: 112px; text-align: left; }
 .portal-stage .result-value { min-width: 96px; text-align: center; }
 .portal-stage .result-kicker { min-width: 44px; text-align: right; }
 .portal-stage .result-formula { min-width: 44px; text-align: left; }
@@ -2616,3 +2593,4 @@
 @media (max-width: 560px) {
   .portal-stage .portal-foot { flex-direction: unset; gap: 14px; }
 }
+.portal-stage .portal-label span { color: var(--t-ink-dim); }

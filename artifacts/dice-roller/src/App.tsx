@@ -622,7 +622,6 @@ export default function App() {
               <span />
             </span>
             <span>Two Numbers</span>
-            <span className="brand-version">{APP_VERSION}</span>
           </div>
         </header>
 
@@ -633,7 +632,6 @@ export default function App() {
         <section className="portal-stage" aria-label="Two-number generator">
           <div className="portal-label">
             <span>Range 1–6</span>
-            <span>{rolling ? PHASES[phase] : "Ready"}</span>
           </div>
 
           <div className={`number-stage ${rolling ? "is-charged" : ""} ${stageTone ? `is-${stageTone}` : ""}`}>
@@ -677,11 +675,9 @@ export default function App() {
           >
             {rolling ? (
               <>
-                <span className="result-kicker">Result</span>
-                <span className="result-value">{PHASES[phase]}</span>
-                <span className="result-formula" aria-hidden="true">
-                  · · ·
-                </span>
+                <span className="result-kicker">Total</span>
+                <span className="result-value">—</span>
+                <span className="result-formula" aria-hidden="true" />
               </>
             ) : sum !== null ? (
               <>
@@ -689,15 +685,13 @@ export default function App() {
                 <span className="result-value" data-testid="text-total">
                   {shownTotal}
                 </span>
-                <span className="result-formula">
-                  {pair![0]} + {pair![1]}
-                </span>
+                <span className="result-formula" aria-hidden="true" />
               </>
             ) : (
               <>
-                <span className="result-kicker">Result</span>
+                <span className="result-kicker">Total</span>
                 <span className="result-value">—</span>
-                <span className="result-formula">No result yet</span>
+                <span className="result-formula" aria-hidden="true" />
               </>
             )}
           </div>
@@ -763,7 +757,7 @@ export default function App() {
           </div>
           <p className="mode-hint">
             {mode === "balanced"
-              ? `A shuffled pool of ${POOL_SIZE} results that follows the real odds (a 7 appears ${POOL_TOTAL_COUNTS[7]} times, a 2 or 12 only ${POOL_TOTAL_COUNTS[2]}), reshuffled after ${CUT_AFTER}. Smooths long streaks.`
+              ? `A shuffled pool of ${POOL_SIZE} results that follows the real odds. Smooths long streaks.`
               : "Two fresh, independent draws every time. Long streaks can and do happen."}
           </p>
           {mode === "balanced" && (
@@ -917,8 +911,7 @@ export default function App() {
                 aria-controls="probability-modal"
                 data-testid="button-toggle-stats"
               >
-                View probability · {totalRolls}{" "}
-                {totalRolls === 1 ? "result" : "results"}
+                View probability
               </button>
               <button
                 type="button"
