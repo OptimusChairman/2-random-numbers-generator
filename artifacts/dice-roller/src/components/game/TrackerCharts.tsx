@@ -95,7 +95,7 @@ function ConvergenceChart({ trend }: { trend: TrendPoint[] }) {
     <figure className="tracker-chart" data-testid="chart-convergence">
       <figcaption>
         <strong>Convergence</strong>
-        <span>Distance from the fair odds as your results grow</span>
+        <span>How far your results are from fair odds. Lower is better.</span>
       </figcaption>
       {trend.filter(([n]) => n >= 3).length < 2 ? (
         <p className="chart-empty">Generate a few more results to see the trend.</p>
@@ -103,17 +103,20 @@ function ConvergenceChart({ trend }: { trend: TrendPoint[] }) {
         <>
           <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Deviation from the fair odds compared with a typical fair generator">
             <path d={linePath([{ x: left, y: bottom }, { x: right, y: bottom }])} className="chart-axis" />
-            <text x="4" y="16" className="chart-label">{chart.ceiling.toFixed(0)}</text>
-            <text x="4" y={bottom + 3} className="chart-label">0</text>
-            <text x={left} y={bottom + 16} className="chart-label">3</text>
-            <text x={right} y={bottom + 16} className="chart-label" textAnchor="end">{chart.maxN}</text>
+            <text x="4" y="16" className="chart-label">Bigger gap</text>
+            <text x="4" y={bottom - 4} className="chart-label">Fair</text>
+            <text x={left} y={bottom + 16} className="chart-label">Fewer results</text>
+            <text x={right} y={bottom + 16} className="chart-label" textAnchor="end">{chart.maxN} results</text>
             <path d={chart.reference} className="chart-expected" />
             <path d={chart.mine} className="chart-trend" />
             {chart.end && <circle cx={chart.end.x} cy={chart.end.y} r="3.6" className="chart-trend-dot" />}
           </svg>
           <p className="chart-note">
-            Now <strong>{chart.current.toFixed(1)} pp</strong> off. A fair generator is typically around{" "}
-            <strong>{chart.typical.toFixed(1)} pp</strong> at this point, and both shrink as results grow.
+            <span className="chart-key chart-key-you">Your results</span>
+            <span className="chart-key chart-key-typical">Typical fair generator</span>
+            <br />
+            You are <strong>{chart.current.toFixed(1)}%</strong> off perfectly fair. A fair generator is usually about{" "}
+            <strong>{chart.typical.toFixed(1)}%</strong> off at this point. The gap shrinks the more you generate.
           </p>
         </>
       )}

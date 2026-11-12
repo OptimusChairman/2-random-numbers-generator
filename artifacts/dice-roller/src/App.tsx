@@ -841,7 +841,7 @@ export default function App() {
             <div className="sanity-popup-heading">
               <div>
                 <p className="modal-overline">{sanityResult.passed ? "Check passed" : "Check flagged"}</p>
-                <h2>Randomness sanity check</h2>
+                <h2>Randomness check</h2>
               </div>
               <button
                 type="button"
@@ -853,34 +853,38 @@ export default function App() {
               </button>
             </div>
             <p className="sanity-popup-detail">
-              {sanityResult.rolls.toLocaleString()} simulated results from the raw generator
+              Tested {sanityResult.rolls.toLocaleString()} results from the generator (your history is untouched).
             </p>
             <p className="sanity-popup-detail">
-              Distribution: χ² <strong>{sanityResult.chiSquare.toFixed(2)}</strong> (10 df) · p ={" "}
-              <strong>{sanityResult.pValue.toFixed(3)}</strong>
+              Totals appear at the right rates:{" "}
+              <strong>{sanityResult.failures.includes("distribution") ? "Off" : "OK"}</strong>
             </p>
             <p className="sanity-popup-detail">
-              Independence: consecutive correlation <strong>{sanityResult.serialCorrelation.toFixed(4)}</strong> · z ={" "}
-              {sanityResult.serialZ.toFixed(2)}
+              One result does not predict the next:{" "}
+              <strong>{sanityResult.failures.includes("independence") ? "Off" : "OK"}</strong>
             </p>
-            <p className="sanity-popup-detail">
-              Largest gap: number {sanityResult.worstTotal} at {sanityResult.actualPct.toFixed(2)}% vs{" "}
-              {sanityResult.expectedPct.toFixed(2)}% expected
-            </p>
+            <details className="sanity-popup-more">
+              <summary>Technical details</summary>
+              <p className="sanity-popup-detail">
+                χ² {sanityResult.chiSquare.toFixed(2)} (p = {sanityResult.pValue.toFixed(3)}), correlation{" "}
+                {sanityResult.serialCorrelation.toFixed(4)} (z = {sanityResult.serialZ.toFixed(2)}). Largest gap: number{" "}
+                {sanityResult.worstTotal} at {sanityResult.actualPct.toFixed(2)}% vs{" "}
+                {sanityResult.expectedPct.toFixed(2)}% expected.
+              </p>
+            </details>
             {sanityResult.passed ? (
               <p className="sanity-popup-note">
-                Totals follow the expected distribution and consecutive results look independent.
+                All good. No sign of bias or patterns.
               </p>
             ) : sanityResult.isRecheck ? (
               <p className="sanity-popup-note">
-                Flagged twice in a row ({sanityResult.failures.join(" and ")}). A fair generator almost never does
-                this, so it is worth investigating.
+                Flagged twice in a row. A fair generator almost never does this, so it is worth looking into.
               </p>
             ) : (
               <>
                 <p className="sanity-popup-note">
-                  A fair generator trips this about 1 run in 75, so recheck before treating it as a problem. This
-                  will not change your saved history.
+                  Something looked slightly off. A fair generator does this about 1 time in 75, so run a bigger test
+                  before worrying.
                 </p>
                 <button
                   type="button"

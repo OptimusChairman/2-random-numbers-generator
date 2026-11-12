@@ -1102,6 +1102,10 @@
   line-height: 1.55;
 }
 
+.sanity-popup-more { margin: 6px 0 0; font-size: 11px; color: rgba(205, 220, 244, .6); }
+.sanity-popup-more summary { cursor: pointer; }
+.sanity-popup-more .sanity-popup-detail { margin-top: 6px; }
+
 .sanity-popup-detail strong {
   color: #b9d9ff;
   font-weight: 500;
@@ -2076,6 +2080,9 @@
 .chart-trend-dot { fill: #fff; }
 .chart-note, .chart-empty { margin: 6px 0 2px; color: rgba(205, 220, 244, .62); font-size: 12px; line-height: 1.5; }
 .chart-note strong { color: var(--t-light); }
+.chart-key { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; font-size: 11px; }
+.chart-key::before { content: ""; width: 16px; height: 0; border-top: 2px solid var(--t-accent); }
+.chart-key-typical::before { border-top: 2px dashed rgba(255, 255, 255, .85); }
 
 @media (prefers-reduced-motion: reduce) {
   .roll-button.is-charging .roll-charge { animation: none; transform: scaleX(1); }
