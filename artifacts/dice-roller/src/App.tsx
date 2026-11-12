@@ -631,9 +631,7 @@ export default function App() {
         </section>
 
         <section className="portal-stage" aria-label="Two-number generator">
-          <div className="portal-label">
-            <span>Range 1–6</span>
-          </div>
+          <p className="sr-only">Each number is between 1 and 6.</p>
 
           <div className={`number-stage ${rolling ? "is-charged" : ""} ${stageTone ? `is-${stageTone}` : ""}`}>
             <div className="energy-field" aria-hidden="true">
