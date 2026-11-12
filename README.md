@@ -22,7 +22,7 @@ The spinning animation is cosmetic only. The real result is drawn once, when the
 
 Each theme has its own portrait and landscape background art (`public/backgrounds/`), chosen by screen orientation; only the active theme's image is downloaded.
 
-Settings are saved on the device. Shake, tilt, haptics and install only appear on devices that support them. Phones show a small hint under Generate ("Or shake your phone to generate", or an "Enable shake" button when it is off). Settings, the sanity check, View probability and Reset history sit behind a **More options** toggle so the main screen stays focused on the numbers.
+Settings are saved on the device. Shake, tilt, haptics and install only appear on devices that support them. Phones show a small hint under Generate ("Or shake your phone to generate", or an "Enable shake" button when it is off).
 
 # A Note for Players:
 If you cannot use physical dice for personal, ethical, or religious reasons, this tool is built specifically for you. It provides a mathematically sound, visually engaging alternative so you can fully participate in your favorite board games—like Catan—with your friends, without ever having to compromise your principles.

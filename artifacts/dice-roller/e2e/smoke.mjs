@@ -41,13 +41,6 @@ const rollOnce = async (page) => {
   await page.click('[data-testid="button-roll"]');
   await page.waitForTimeout(650);
 };
-const openMore = async (page) => {
-  if ((await page.getAttribute('[data-testid="button-more"]', "aria-expanded")) !== "true") {
-    await page.click('[data-testid="button-more"]');
-    await page.waitForTimeout(300);
-  }
-};
-
 // 1. Core flow on a phone: results are valid and consistent.
 {
   const { context, page, problems } = await newPage(devices["iPhone 13"]);
@@ -66,11 +59,9 @@ const openMore = async (page) => {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   check("no sideways scroll on a phone", overflow === 0, `${overflow}px`);
 
-  // 2. Mode and theme persist across a reload. Settings live behind "More options".
-  check("settings are tucked away until More options is opened", (await page.locator('[data-testid="button-theme"]').count()) === 0);
+  // 2. Mode and theme persist across a reload.
   await page.click('[data-testid="button-mode-pure"]');
-  await openMore(page);
-  check("More options reveals the settings", await page.locator('[data-testid="button-theme"]').isVisible());
+  check("settings sit below the recent results", await page.locator('[data-testid="button-theme"]').isVisible());
   await page.click('[data-testid="button-theme"]');
   await page.waitForTimeout(900);
   await page.reload();
@@ -85,7 +76,7 @@ const openMore = async (page) => {
   check("theme survives a reload", after.theme === "ember", after.theme);
   check("history survives a reload", after.orbs === 6, String(after.orbs));
   check("one backdrop layer after load", after.layers === 1, String(after.layers));
-  await openMore(page);
+  check("pool shows no dot grid", (await page.locator('[data-testid="pool-grid"]').count()) === 0);
 
   // 3. Each theme loads its own portrait artwork.
   const seen = [];
@@ -147,13 +138,11 @@ const openMore = async (page) => {
   await page.goto(BASE);
   await page.waitForTimeout(600);
   const onCount = await page.locator(".theme-backdrop").count();
-  await openMore(page);
   await page.click('[data-testid="button-artwork"]');
   await page.waitForTimeout(200);
   const offCount = await page.locator(".theme-backdrop").count();
   await page.reload();
   await page.waitForTimeout(500);
-  await openMore(page);
   const stays = await page.getAttribute('[data-testid="button-artwork"]', "aria-pressed");
   check("artwork switch removes the backdrop", onCount === 1 && offCount === 0, `${onCount} -> ${offCount}`);
   check("artwork switch is remembered after reload", stays === "false" && (await page.locator(".theme-backdrop").count()) === 0);

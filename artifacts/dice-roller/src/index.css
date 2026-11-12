@@ -1955,7 +1955,6 @@
 @keyframes haloPulse { 0%, 100% { transform: scale(.8); opacity: .7; } 50% { transform: scale(1.15); opacity: 1; } }
 
 /* --- Pool as a dot grid --- */
-.pool-grid { display: block; width: 100%; height: auto; margin-bottom: 2px; }
 .pool-dot-dealt { fill: rgba(205, 220, 244, .13); }
 .pool-dot-upcoming { fill: rgba(var(--t-accent-rgb), .78); }
 .pool-dot-tail { fill: rgba(var(--t-deep-rgb), .3); }
@@ -2555,7 +2554,7 @@
   margin-bottom: 4px;
 }
 
-.portal-stage .number-stage { --ring: clamp(124px, 35vw, 200px); gap: clamp(10px, 3.2vw, 56px); padding-block: clamp(26px, 5vw, 44px) clamp(18px, 3vw, 26px); }
+.portal-stage .number-stage { --ring: clamp(124px, 35vw, 200px); gap: clamp(10px, 3.2vw, 56px); padding-block: clamp(22px, 4vw, 35px); }
 @media (max-width: 380px) { .portal-stage .number-stage { --ring: 104px; } }
 .portal-stage .result-band { min-height: 52px; }
 .portal-stage .result-value { font-size: 44px; }
@@ -2596,14 +2595,10 @@
 .portal-stage .portal-label span { color: var(--t-ink-dim); }
 
 /* =====================================================================================
-   More options sheet, shake hint, quieter headline
+   Shake hint and quieter headline
    ===================================================================================== */
-.hero h1 {
-  font-size: clamp(1.45rem, 4.2vw, 2.25rem);
-  font-weight: 500;
-  letter-spacing: -.035em;
-  color: var(--t-ink-dim);
-}
+/* Smaller headline; colour, weight and shadow stay as in the Design 4 block above. */
+.hero h1 { font-size: clamp(1.45rem, 4.2vw, 2.25rem); }
 @media (orientation: portrait) {
   .hero { padding-top: max(96px, calc(0.22 * max(100dvh, 177.7vw) - 48px)); }
 }
@@ -2629,47 +2624,4 @@
   cursor: pointer;
 }
 .shake-hint button:hover { color: var(--t-ink); border-color: rgba(var(--t-line-rgb), .7); }
-.shake-hint button:focus-visible,
-.more-toggle:focus-visible { outline: 2px solid var(--t-accent); outline-offset: 3px; }
-
-.more-bar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  max-width: 860px;
-  margin: 14px auto 0;
-}
-.more-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--t-ink-dim);
-  font: 600 13.5px "Manrope", sans-serif;
-  cursor: pointer;
-}
-.more-toggle:hover { color: var(--t-ink); }
-.more-toggle svg { transition: transform .2s ease; }
-.more-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
-.more-bar .settings-status { margin: 0; text-align: center; }
-
-.more-panel {
-  display: grid;
-  gap: 16px;
-  max-width: 860px;
-  margin: 8px auto 0;
-  padding: 18px;
-  border: 1px solid rgba(var(--t-line-rgb), .28);
-  border-radius: 22px;
-  background: rgba(var(--t-surface-rgb), .6);
-  animation: more-open .22s ease both;
-}
-.more-panel > * { margin-top: 0; margin-bottom: 0; }
-.more-panel .history-actions { margin-top: 0; }
-@keyframes more-open { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .more-panel { animation: none; } .more-toggle svg { transition: none; } }
+.shake-hint button:focus-visible { outline: 2px solid var(--t-accent); outline-offset: 3px; }
