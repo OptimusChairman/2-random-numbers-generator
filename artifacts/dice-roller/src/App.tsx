@@ -863,13 +863,17 @@ export default function App() {
               One result does not predict the next:{" "}
               <strong>{sanityResult.failures.includes("independence") ? "Off" : "OK"}</strong>
             </p>
+            <p className="sanity-popup-detail">
+              Biggest gap: number <strong>{sanityResult.worstTotal}</strong>. Actual{" "}
+              <strong>{sanityResult.actualPct.toFixed(2)}%</strong> vs expected{" "}
+              <strong>{sanityResult.expectedPct.toFixed(2)}%</strong>, a gap of{" "}
+              <strong>{sanityResult.maxDifference.toFixed(2)}%</strong>.
+            </p>
             <details className="sanity-popup-more">
               <summary>Technical details</summary>
               <p className="sanity-popup-detail">
                 χ² {sanityResult.chiSquare.toFixed(2)} (p = {sanityResult.pValue.toFixed(3)}), correlation{" "}
-                {sanityResult.serialCorrelation.toFixed(4)} (z = {sanityResult.serialZ.toFixed(2)}). Largest gap: number{" "}
-                {sanityResult.worstTotal} at {sanityResult.actualPct.toFixed(2)}% vs{" "}
-                {sanityResult.expectedPct.toFixed(2)}% expected.
+                {sanityResult.serialCorrelation.toFixed(4)} (z = {sanityResult.serialZ.toFixed(2)}).
               </p>
             </details>
             {sanityResult.passed ? (
