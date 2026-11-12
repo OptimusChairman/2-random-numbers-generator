@@ -222,6 +222,7 @@ export default function App() {
   const [canMotion] = useState(canUseMotion);
   const [vibrates] = useState(canVibrate);
   const [showStats, setShowStats] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [sanityRunning, setSanityRunning] = useState(false);
   const [sanityProgress, setSanityProgress] = useState(0);
@@ -728,6 +729,18 @@ export default function App() {
               </button>
             )}
           </div>
+
+          {canMotion && (
+            <div className="shake-hint" data-testid="shake-hint">
+              {settings.motion ? (
+                <span>Or shake your phone to generate</span>
+              ) : (
+                <button type="button" onClick={() => toggleSetting("motion")} data-testid="button-enable-shake">
+                  Enable shake to generate
+                </button>
+              )}
+            </div>
+          )}
         </section>
 
         <section className="portal-card" aria-label="Generator mode and pool">
@@ -792,138 +805,172 @@ export default function App() {
           )}
         </section>
 
-        <SettingsRow
-          settings={settings}
-          canVibrate={vibrates}
-          canMotion={canMotion}
-          canInstall={installEvent !== null}
-          status={notice}
-          onToggle={toggleSetting}
-          onCycleTheme={cycleTheme}
-          onInstall={installApp}
-          onTestHaptics={testHaptics}
-        />
-
-        <div className="sanity-action">
-          <button
-            type="button"
-            className="sanity-check-button"
-            onClick={() => runSanity()}
-            disabled={sanityRunning}
-            aria-label={sanityRunning ? `Running sanity check, ${Math.round(sanityProgress * 100)} percent` : "Run sanity check"}
-            style={{ ["--progress" as string]: sanityProgress }}
-          >
-            <span className="sanity-fill" aria-hidden="true" />
-            <span className="sanity-label">
-              {sanityRunning ? `Checking… ${Math.round(sanityProgress * 100)}%` : "Run sanity check"}
-            </span>
-          </button>
-          <span>Tests the raw generator. Your history and pool stay unchanged.</span>
-        </div>
-
-        {sanityResult && (
-          <aside
-            className={`sanity-popup ${sanityResult.passed ? "is-passed" : "is-warning"}`}
-            role="status"
-            aria-live="polite"
-          >
-            <div className="sanity-popup-heading">
-              <div>
-                <p className="modal-overline">{sanityResult.passed ? "Check passed" : "Check flagged"}</p>
-                <h2>Randomness check</h2>
-              </div>
-              <button
-                type="button"
-                className="sanity-popup-close"
-                onClick={() => setSanityResult(null)}
-                aria-label="Dismiss sanity check results"
-              >
-                ×
-              </button>
+        {totalRolls > 0 && (
+          <section className="recent-results" aria-labelledby="recent-results-title">
+            <div className="recent-heading">
+              <h2 id="recent-results-title">Recent results</h2>
+              <span>Last {recentResults.length}</span>
             </div>
-            <p className="sanity-popup-detail">
-              Tested {sanityResult.rolls.toLocaleString()} results from the generator (your history is untouched).
-            </p>
-            <p className="sanity-popup-detail">
-              Totals appear at the right rates:{" "}
-              <strong>{sanityResult.failures.includes("distribution") ? "Off" : "OK"}</strong>
-            </p>
-            <p className="sanity-popup-detail">
-              One result does not predict the next:{" "}
-              <strong>{sanityResult.failures.includes("independence") ? "Off" : "OK"}</strong>
-            </p>
-            <p className="sanity-popup-detail">
-              Biggest gap: number <strong>{sanityResult.worstTotal}</strong>. Actual{" "}
-              <strong>{sanityResult.actualPct.toFixed(2)}%</strong> vs expected{" "}
-              <strong>{sanityResult.expectedPct.toFixed(2)}%</strong>, a gap of{" "}
-              <strong>{sanityResult.maxDifference.toFixed(2)}%</strong>.
-            </p>
-            <details className="sanity-popup-more">
-              <summary>Technical details</summary>
-              <p className="sanity-popup-detail">
-                χ² {sanityResult.chiSquare.toFixed(2)} (p = {sanityResult.pValue.toFixed(3)}), correlation{" "}
-                {sanityResult.serialCorrelation.toFixed(4)} (z = {sanityResult.serialZ.toFixed(2)}).
-              </p>
-            </details>
-            {sanityResult.passed ? (
-              <p className="sanity-popup-note">
-                All good. No sign of bias or patterns.
-              </p>
-            ) : sanityResult.isRecheck ? (
-              <p className="sanity-popup-note">
-                Flagged twice in a row. A fair generator almost never does this, so it is worth looking into.
-              </p>
-            ) : (
-              <>
-                <p className="sanity-popup-note">
-                  Something looked slightly off. A fair generator does this about 1 time in 75, so run a bigger test
-                  before worrying.
-                </p>
-                <button
-                  type="button"
-                  className="sanity-fix-button"
-                  onClick={handleSanityFix}
-                  aria-label="Recheck with 200,000 simulated results"
-                >
-                  Recheck with 200,000 results
-                </button>
-              </>
-            )}
-          </aside>
+            <HistoryStrip results={recentResults} />
+          </section>
         )}
 
-        {totalRolls > 0 && (
-          <>
-            <section className="recent-results" aria-labelledby="recent-results-title">
-              <div className="recent-heading">
-                <h2 id="recent-results-title">Recent results</h2>
-                <span>Last {recentResults.length}</span>
-              </div>
-              <HistoryStrip results={recentResults} />
-            </section>
+        <div className="more-bar">
+          <button
+            type="button"
+            className="more-toggle"
+            onClick={() => setShowMore((v) => !v)}
+            aria-expanded={showMore}
+            aria-controls="more-panel"
+            data-testid="button-more"
+          >
+            <span>{showMore ? "Hide options" : "More options"}</span>
+            <svg viewBox="0 0 12 8" width="12" height="8" aria-hidden="true">
+              <path
+                d="M1 1.5 6 6.5 11 1.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          {!showMore && notice && (
+            <p className="settings-status" role="status" aria-live="polite">
+              {notice}
+            </p>
+          )}
+        </div>
 
-            <div className="history-actions">
+        {showMore && (
+          <div className="more-panel" id="more-panel">
+            <SettingsRow
+              settings={settings}
+              canVibrate={vibrates}
+              canMotion={canMotion}
+              canInstall={installEvent !== null}
+              status={notice}
+              onToggle={toggleSetting}
+              onCycleTheme={cycleTheme}
+              onInstall={installApp}
+              onTestHaptics={testHaptics}
+            />
+
+            <div className="sanity-action">
               <button
                 type="button"
-                className="stats-toggle"
-                onClick={() => setShowStats(true)}
-                aria-expanded={showStats}
-                aria-controls="probability-modal"
-                data-testid="button-toggle-stats"
+                className="sanity-check-button"
+                onClick={() => runSanity()}
+                disabled={sanityRunning}
+                aria-label={sanityRunning ? `Running sanity check, ${Math.round(sanityProgress * 100)} percent` : "Run sanity check"}
+                style={{ ["--progress" as string]: sanityProgress }}
               >
-                View probability
+                <span className="sanity-fill" aria-hidden="true" />
+                <span className="sanity-label">
+                  {sanityRunning ? `Checking… ${Math.round(sanityProgress * 100)}%` : "Run sanity check"}
+                </span>
               </button>
-              <button
-                type="button"
-                className="reset-button"
-                onClick={() => setShowResetConfirm(true)}
-                data-testid="button-reset-history"
-              >
-                Reset history
-              </button>
+              <span>Tests the raw generator. Your history and pool stay unchanged.</span>
             </div>
-            <p className="local-history-note">History is saved on this device only.</p>
-          </>
+
+            {sanityResult && (
+              <aside
+                className={`sanity-popup ${sanityResult.passed ? "is-passed" : "is-warning"}`}
+                role="status"
+                aria-live="polite"
+              >
+                <div className="sanity-popup-heading">
+                  <div>
+                    <p className="modal-overline">{sanityResult.passed ? "Check passed" : "Check flagged"}</p>
+                    <h2>Randomness check</h2>
+                  </div>
+                  <button
+                    type="button"
+                    className="sanity-popup-close"
+                    onClick={() => setSanityResult(null)}
+                    aria-label="Dismiss sanity check results"
+                  >
+                    ×
+                  </button>
+                </div>
+                <p className="sanity-popup-detail">
+                  Tested {sanityResult.rolls.toLocaleString()} results from the generator (your history is untouched).
+                </p>
+                <p className="sanity-popup-detail">
+                  Totals appear at the right rates:{" "}
+                  <strong>{sanityResult.failures.includes("distribution") ? "Off" : "OK"}</strong>
+                </p>
+                <p className="sanity-popup-detail">
+                  One result does not predict the next:{" "}
+                  <strong>{sanityResult.failures.includes("independence") ? "Off" : "OK"}</strong>
+                </p>
+                <p className="sanity-popup-detail">
+                  Biggest gap: number <strong>{sanityResult.worstTotal}</strong>. Actual{" "}
+                  <strong>{sanityResult.actualPct.toFixed(2)}%</strong> vs expected{" "}
+                  <strong>{sanityResult.expectedPct.toFixed(2)}%</strong>, a gap of{" "}
+                  <strong>{sanityResult.maxDifference.toFixed(2)}%</strong>.
+                </p>
+                <details className="sanity-popup-more">
+                  <summary>Technical details</summary>
+                  <p className="sanity-popup-detail">
+                    χ² {sanityResult.chiSquare.toFixed(2)} (p = {sanityResult.pValue.toFixed(3)}), correlation{" "}
+                    {sanityResult.serialCorrelation.toFixed(4)} (z = {sanityResult.serialZ.toFixed(2)}).
+                  </p>
+                </details>
+                {sanityResult.passed ? (
+                  <p className="sanity-popup-note">
+                    All good. No sign of bias or patterns.
+                  </p>
+                ) : sanityResult.isRecheck ? (
+                  <p className="sanity-popup-note">
+                    Flagged twice in a row. A fair generator almost never does this, so it is worth looking into.
+                  </p>
+                ) : (
+                  <>
+                    <p className="sanity-popup-note">
+                      Something looked slightly off. A fair generator does this about 1 time in 75, so run a bigger test
+                      before worrying.
+                    </p>
+                    <button
+                      type="button"
+                      className="sanity-fix-button"
+                      onClick={handleSanityFix}
+                      aria-label="Recheck with 200,000 simulated results"
+                    >
+                      Recheck with 200,000 results
+                    </button>
+                  </>
+                )}
+              </aside>
+            )}
+
+            {totalRolls > 0 && (
+              <>
+                <div className="history-actions">
+                  <button
+                    type="button"
+                    className="stats-toggle"
+                    onClick={() => setShowStats(true)}
+                    aria-expanded={showStats}
+                    aria-controls="probability-modal"
+                    data-testid="button-toggle-stats"
+                  >
+                    View probability
+                  </button>
+                  <button
+                    type="button"
+                    className="reset-button"
+                    onClick={() => setShowResetConfirm(true)}
+                    data-testid="button-reset-history"
+                  >
+                    Reset history
+                  </button>
+                </div>
+                <p className="local-history-note">History is saved on this device only.</p>
+              </>
+            )}
+          </div>
         )}
 
         {showStats && totalRolls > 0 && (
