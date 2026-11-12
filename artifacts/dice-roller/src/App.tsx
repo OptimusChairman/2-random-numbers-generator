@@ -175,7 +175,6 @@ function NumberNode({
 }) {
   return (
     <div className={`number-node number-node-${index} ${rolling ? "is-charged" : "is-revealed"}`}>
-      <span className="number-index">{index === "a" ? "A / 01" : "B / 02"}</span>
       <output
         className="number-value"
         aria-label={`Number ${index.toUpperCase()} is ${value}`}
@@ -190,7 +189,6 @@ function NumberNode({
 function NumberPlaceholder({ index }: { index: "a" | "b" }) {
   return (
     <div className="number-node number-node-placeholder">
-      <span className="number-index">{index === "a" ? "A / 01" : "B / 02"}</span>
       <output
         className="number-value"
         aria-label={`Number ${index.toUpperCase()} is waiting`}
@@ -623,85 +621,20 @@ export default function App() {
             <span className="brand-symbol" aria-hidden="true">
               <span />
             </span>
-            <span>Version {APP_VERSION}</span>
-          </div>
-          <div className="topbar-actions">
-            <span className="topbar-note">Between 1 and 6</span>
+            <span>Two Numbers</span>
+            <span className="brand-version">{APP_VERSION}</span>
           </div>
         </header>
 
         <section className="hero" aria-labelledby="page-title">
-          <p className="eyebrow">Random number generator</p>
-          <h1 id="page-title">
-            Generate 2 <em>random numbers.</em>
-          </h1>
+          <h1 id="page-title">Generate 2 random numbers.</h1>
         </section>
 
-        <section className="portal-card" aria-label="Two-number generator">
+        <section className="portal-stage" aria-label="Two-number generator">
           <div className="portal-label">
             <span>Range 1–6</span>
             <span>{rolling ? PHASES[phase] : "Ready"}</span>
           </div>
-
-          <div className="mode-switch" data-mode={mode} role="group" aria-label="Generator mode">
-            <button
-              type="button"
-              className={`mode-option ${mode === "balanced" ? "is-active" : ""}`}
-              aria-pressed={mode === "balanced"}
-              disabled={rolling}
-              onClick={() => changeMode("balanced")}
-              data-testid="button-mode-balanced"
-            >
-              <strong>Balanced</strong>
-              <span>{POOL_SIZE} pool</span>
-            </button>
-            <button
-              type="button"
-              className={`mode-option ${mode === "pure" ? "is-active" : ""}`}
-              aria-pressed={mode === "pure"}
-              disabled={rolling}
-              onClick={() => changeMode("pure")}
-              data-testid="button-mode-pure"
-            >
-              <strong>Pure random</strong>
-              <span>independent</span>
-            </button>
-          </div>
-          <p className="mode-hint">
-            {mode === "balanced"
-              ? `A shuffled pool of ${POOL_SIZE} results that follows the real odds (a 7 appears ${POOL_TOTAL_COUNTS[7]} times, a 2 or 12 only ${POOL_TOTAL_COUNTS[2]}), reshuffled after ${CUT_AFTER}. Smooths long streaks.`
-              : "Two fresh, independent draws every time. Long streaks can and do happen."}
-          </p>
-          {mode === "balanced" && (
-            <details className="pool-details">
-              <summary>See what is in the pool</summary>
-              <ul className="pool-makeup" aria-label="Pool makeup by total">
-                {SUM_VALUES.map((value) => (
-                  <li key={value}>
-                    <strong>{value}</strong>
-                    <span>{POOL_TOTAL_COUNTS[value]} of {POOL_SIZE}</span>
-                    <em>{(expectedShare(value) * 100).toFixed(2)}%</em>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-          {mode === "balanced" && (
-            <div
-              className="shoe-meter"
-              role="progressbar"
-              aria-label="Balanced pool progress"
-              aria-valuemin={0}
-              aria-valuemax={shoeStatus.cutAfter}
-              aria-valuenow={shoeStatus.drawn}
-              data-testid="meter-pool"
-            >
-              <PoolGrid drawn={shoeStatus.drawn} poolSize={POOL_SIZE} cutAfter={shoeStatus.cutAfter} />
-              <span>
-                Pool {shoeStatus.drawn} / {shoeStatus.cutAfter} · reshuffles at the cut
-              </span>
-            </div>
-          )}
 
           <div className={`number-stage ${rolling ? "is-charged" : ""} ${stageTone ? `is-${stageTone}` : ""}`}>
             <div className="energy-field" aria-hidden="true">
@@ -803,6 +736,68 @@ export default function App() {
           </div>
         </section>
 
+        <section className="portal-card" aria-label="Generator mode and pool">
+          <div className="mode-switch" data-mode={mode} role="group" aria-label="Generator mode">
+            <button
+              type="button"
+              className={`mode-option ${mode === "balanced" ? "is-active" : ""}`}
+              aria-pressed={mode === "balanced"}
+              disabled={rolling}
+              onClick={() => changeMode("balanced")}
+              data-testid="button-mode-balanced"
+            >
+              <strong>Balanced</strong>
+              <span>{POOL_SIZE} pool</span>
+            </button>
+            <button
+              type="button"
+              className={`mode-option ${mode === "pure" ? "is-active" : ""}`}
+              aria-pressed={mode === "pure"}
+              disabled={rolling}
+              onClick={() => changeMode("pure")}
+              data-testid="button-mode-pure"
+            >
+              <strong>Pure random</strong>
+              <span>independent</span>
+            </button>
+          </div>
+          <p className="mode-hint">
+            {mode === "balanced"
+              ? `A shuffled pool of ${POOL_SIZE} results that follows the real odds (a 7 appears ${POOL_TOTAL_COUNTS[7]} times, a 2 or 12 only ${POOL_TOTAL_COUNTS[2]}), reshuffled after ${CUT_AFTER}. Smooths long streaks.`
+              : "Two fresh, independent draws every time. Long streaks can and do happen."}
+          </p>
+          {mode === "balanced" && (
+            <details className="pool-details">
+              <summary>See what is in the pool</summary>
+              <ul className="pool-makeup" aria-label="Pool makeup by total">
+                {SUM_VALUES.map((value) => (
+                  <li key={value}>
+                    <strong>{value}</strong>
+                    <span>{POOL_TOTAL_COUNTS[value]} of {POOL_SIZE}</span>
+                    <em>{(expectedShare(value) * 100).toFixed(2)}%</em>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          {mode === "balanced" && (
+            <div
+              className="shoe-meter"
+              role="progressbar"
+              aria-label="Balanced pool progress"
+              aria-valuemin={0}
+              aria-valuemax={shoeStatus.cutAfter}
+              aria-valuenow={shoeStatus.drawn}
+              data-testid="meter-pool"
+            >
+              <PoolGrid drawn={shoeStatus.drawn} poolSize={POOL_SIZE} cutAfter={shoeStatus.cutAfter} />
+              <span>
+                Pool {shoeStatus.drawn} / {shoeStatus.cutAfter} · reshuffles at the cut
+              </span>
+            </div>
+          )}
+        </section>
+
         <SettingsRow
           settings={settings}
           canVibrate={vibrates}
@@ -829,7 +824,7 @@ export default function App() {
               {sanityRunning ? `Checking… ${Math.round(sanityProgress * 100)}%` : "Run sanity check"}
             </span>
           </button>
-          <span>Diagnostic only · tests the raw randomness · saved history and pool stay unchanged</span>
+          <span>Tests the raw generator. Your history and pool stay unchanged.</span>
         </div>
 
         {sanityResult && (
