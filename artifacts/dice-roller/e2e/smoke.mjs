@@ -90,6 +90,12 @@ const turnArtworkOn = async (page) => {
   check("settings are not on the main screen", (await page.locator('[data-testid="button-theme"]').count()) === 0);
   await openSettings(page);
   check("settings open as a dialog", await page.locator('[data-testid="button-theme"]').isVisible());
+  let escaped = false;
+  for (let i = 0; i < 14; i += 1) {
+    await page.keyboard.press("Tab");
+    if (!(await page.evaluate(() => Boolean(document.activeElement?.closest("#settings-sheet"))))) escaped = true;
+  }
+  check("Tab stays inside the settings dialog", !escaped);
   await closeSettings(page);
   check("Escape closes settings", (await page.locator("#settings-sheet").count()) === 0);
   check("focus returns to the settings button", await page.evaluate(() => document.activeElement?.getAttribute("data-testid") === "button-settings"));

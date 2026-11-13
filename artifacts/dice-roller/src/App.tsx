@@ -34,6 +34,7 @@ import { MAX_TREND_POINTS, appendTrend, isValidTrend, totalVariation, type Trend
 import { HAPTIC_CHARGE, HAPTIC_LOCK, HAPTIC_SPECIAL, HAPTIC_TAP, canVibrate, vibrate } from "./lib/haptics";
 import { shareResult } from "./lib/share";
 import { useCountUp } from "./hooks/useCountUp";
+import { useDialogFocus } from "./hooks/useDialogFocus";
 import { canUseMotion, requestMotionPermission, useMotion } from "./hooks/useMotion";
 import { HistoryStrip, type Result } from "./components/game/HistoryStrip";
 import { TrackerCharts } from "./components/game/TrackerCharts";
@@ -216,6 +217,8 @@ export default function App() {
   const hapticsOn = settings.haptics;
   const [trend, setTrend] = useState<TrendPoint[]>(() => persistedState?.trend ?? []);
   const [showSettings, setShowSettings] = useState(false);
+  const statsDialogRef = useRef<HTMLElement>(null);
+  const resetDialogRef = useRef<HTMLElement>(null);
   const [installEvent, setInstallEvent] = useState<InstallPromptEvent | null>(null);
   const [notice, setNotice] = useState("");
   const [canMotion] = useState(canUseMotion);
@@ -275,10 +278,9 @@ export default function App() {
   }, [mode, pair, recentResults, tally, totalRolls, trend]);
 
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
-  const closeSettings = useCallback(() => {
-    setShowSettings(false);
-    settingsButtonRef.current?.focus();
-  }, []);
+  useDialogFocus(statsDialogRef, showStats && totalRolls > 0);
+  useDialogFocus(resetDialogRef, showResetConfirm);
+  const closeSettings = useCallback(() => setShowSettings(false), []);
 
   useEffect(() => {
     if (!showStats && !showResetConfirm && !showSettings) return;
@@ -966,6 +968,7 @@ export default function App() {
             <section
               className="stats-panel probability-modal"
               id="probability-modal"
+              ref={statsDialogRef}
               role="dialog"
               aria-modal="true"
               aria-labelledby="distribution-title"
@@ -1114,6 +1117,7 @@ export default function App() {
           >
             <section
               className="confirm-dialog"
+              ref={resetDialogRef}
               role="alertdialog"
               aria-modal="true"
               aria-labelledby="reset-title"

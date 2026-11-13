@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { THEME_LABELS, type Settings } from "../../lib/settings";
 
 type Props = {
@@ -68,11 +69,8 @@ export function SettingsSheet({
   onTestHaptics,
   onClose,
 }: Props) {
-  const closeRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    closeRef.current?.focus();
-  }, []);
+  const sheetRef = useRef<HTMLElement>(null);
+  useDialogFocus(sheetRef, true);
 
   return (
     <div
@@ -85,6 +83,7 @@ export function SettingsSheet({
       <section
         className="settings-sheet"
         id="settings-sheet"
+        ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-title"
@@ -92,7 +91,7 @@ export function SettingsSheet({
       >
         <div className="sheet-heading">
           <h2 id="settings-title">Settings</h2>
-          <button type="button" className="sheet-close" onClick={onClose} aria-label="Close settings" ref={closeRef} data-testid="button-close-settings">
+          <button type="button" className="sheet-close" onClick={onClose} aria-label="Close settings" data-testid="button-close-settings">
             <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true">
               <path d="M2 2l10 10M12 2 2 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
