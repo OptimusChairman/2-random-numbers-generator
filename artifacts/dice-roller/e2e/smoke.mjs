@@ -90,6 +90,16 @@ const turnArtworkOn = async (page) => {
   check("settings are not on the main screen", (await page.locator('[data-testid="button-theme"]').count()) === 0);
   await openSettings(page);
   check("settings open as a dialog", await page.locator('[data-testid="button-theme"]').isVisible());
+  const scrolled = await page.evaluate(async () => {
+    const before = window.scrollY;
+    window.dispatchEvent(new Event("scroll"));
+    return before;
+  });
+  await page.mouse.move(200, 120);
+  await page.mouse.wheel(0, 600);
+  await page.waitForTimeout(250);
+  const afterWheel = await page.evaluate(() => window.scrollY);
+  check("page behind the settings dialog does not scroll", afterWheel === scrolled, `${scrolled} -> ${afterWheel}`);
   let escaped = false;
   for (let i = 0; i < 14; i += 1) {
     await page.keyboard.press("Tab");

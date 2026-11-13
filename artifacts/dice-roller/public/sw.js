@@ -1,4 +1,4 @@
-const CACHE_NAME = "two-number-generator-v12";
+const CACHE_NAME = "two-number-generator-v13";
 const APP_SHELL = [
   "/",
   "/index.html",

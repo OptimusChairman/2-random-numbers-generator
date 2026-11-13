@@ -2450,3 +2450,10 @@
   border-radius: 999px;
   background: rgba(var(--t-surface-rgb), .6);
 }
+
+/* --- Dialogs: the page behind stays put while one is open, and scrolling inside never leaks out --- */
+html.dialog-open,
+html.dialog-open body { overflow: hidden; }
+.modal-backdrop,
+.settings-sheet,
+.stats-panel { overscroll-behavior: contain; }
