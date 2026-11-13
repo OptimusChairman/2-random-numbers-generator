@@ -3,6 +3,7 @@ import {
   DEFAULT_SETTINGS,
   LEGACY_SOUND_KEY,
   SETTINGS_KEY,
+  SETTINGS_VERSION,
   THEMES,
   loadSettings,
   nextTheme,
@@ -43,10 +44,21 @@ describe("loadSettings", () => {
     expect(loadSettings(storage)).toEqual({ ...DEFAULT_SETTINGS, haptics: false });
   });
 
-  it("keeps artwork on unless it was switched off", () => {
-    expect(loadSettings(fakeStorage()).artwork).toBe(true);
-    expect(loadSettings(fakeStorage({ [SETTINGS_KEY]: JSON.stringify({ artwork: false }) })).artwork).toBe(false);
-    expect(loadSettings(fakeStorage({ [SETTINGS_KEY]: JSON.stringify({ artwork: "no" }) })).artwork).toBe(true);
+  it("starts with artwork off and remembers turning it on", () => {
+    expect(loadSettings(fakeStorage()).artwork).toBe(false);
+    const storage = fakeStorage();
+    saveSettings({ ...DEFAULT_SETTINGS, artwork: true }, storage);
+    expect(loadSettings(storage).artwork).toBe(true);
+  });
+
+  it("reads artwork as off for settings saved before the plain look became the default", () => {
+    const old = fakeStorage({ [SETTINGS_KEY]: JSON.stringify({ artwork: true, theme: "ember", sound: true }) });
+    expect(loadSettings(old)).toEqual({ ...DEFAULT_SETTINGS, theme: "ember", sound: true, artwork: false });
+  });
+
+  it("ignores an invalid artwork value", () => {
+    const storage = fakeStorage({ [SETTINGS_KEY]: JSON.stringify({ v: SETTINGS_VERSION, artwork: "no" }) });
+    expect(loadSettings(storage).artwork).toBe(false);
   });
 
   it("survives corrupted JSON", () => {

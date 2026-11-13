@@ -18,11 +18,11 @@ The spinning animation is cosmetic only. The real result is drawn once, when the
 - **Pool dot grid:** all 540 results as dots (dealt ones dim, the 405 cut marked by a dashed line).
 - **History orbs** for the last 10 results.
 - **Tracker charts:** a histogram of your results over the fair curve, plus a convergence line showing how far you are from the fair odds against what a fair generator typically does.
-- **Themes** (silver, ember, emerald), **haptics** on lock-in (Android; iPhones have no vibration API), **shake to generate** and **tilt parallax** on phones (iPhone asks for motion permission), **share result** as an image (with the theme's artwork behind it), matching app icons, an **install** button where the browser offers one, and an **Artwork** switch that turns the character backgrounds off (nothing is downloaded, and the share image goes back to the plain starfield).
+- **Themes** (silver, ember, emerald), **haptics** on lock-in (Android; iPhones have no vibration API), **shake to generate** on phones (iPhone asks for motion permission), **share result** as an image (with the theme's artwork behind it), matching app icons, an **install** button where the browser offers one, and an **Artwork** switch. The page is a plain tinted dark canvas by default; turning Artwork on adds the character backgrounds (only then are they downloaded, and the share image uses them too). Settings live in a sheet behind the gear icon in the top bar.
 
 Each theme has its own portrait and landscape background art (`public/backgrounds/`), chosen by screen orientation; only the active theme's image is downloaded.
 
-Settings are saved on the device. Shake, tilt, haptics and install only appear on devices that support them. Phones show a small hint under Generate ("Or shake your phone to generate", or an "Enable shake" button when it is off).
+Settings are saved on the device. Shake, haptics and install only appear on devices that support them. Phones that support shake show a "Turn on shake to generate" link under Generate until it is on.
 
 # A Note for Players:
 If you cannot use physical dice for personal, ethical, or religious reasons, this tool is built specifically for you. It provides a mathematically sound, visually engaging alternative so you can fully participate in your favorite board games—like Catan—with your friends, without ever having to compromise your principles.

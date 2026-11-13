@@ -15,6 +15,7 @@ import {
 import {
   SUM_VALUES,
   expectedShare,
+  EXPECTED_WAYS,
   createSanityRun,
   variationBand,
   type SanityReport,
@@ -34,10 +35,9 @@ import { HAPTIC_CHARGE, HAPTIC_LOCK, HAPTIC_SPECIAL, HAPTIC_TAP, canVibrate, vib
 import { shareResult } from "./lib/share";
 import { useCountUp } from "./hooks/useCountUp";
 import { canUseMotion, requestMotionPermission, useMotion } from "./hooks/useMotion";
-import { OddsCurve } from "./components/game/OddsCurve";
 import { HistoryStrip, type Result } from "./components/game/HistoryStrip";
 import { TrackerCharts } from "./components/game/TrackerCharts";
-import { SettingsRow } from "./components/game/SettingsRow";
+import { SettingsSheet } from "./components/game/SettingsSheet";
 import { ThemeBackdrop } from "./components/game/ThemeBackdrop";
 
 const APP_VERSION = "3.0";
@@ -215,7 +215,7 @@ export default function App() {
   const soundOn = settings.sound;
   const hapticsOn = settings.haptics;
   const [trend, setTrend] = useState<TrendPoint[]>(() => persistedState?.trend ?? []);
-  const [cosmosEl, setCosmosEl] = useState<HTMLElement | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const [installEvent, setInstallEvent] = useState<InstallPromptEvent | null>(null);
   const [notice, setNotice] = useState("");
   const [canMotion] = useState(canUseMotion);
@@ -274,19 +274,26 @@ export default function App() {
     }
   }, [mode, pair, recentResults, tally, totalRolls, trend]);
 
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
+  const closeSettings = useCallback(() => {
+    setShowSettings(false);
+    settingsButtonRef.current?.focus();
+  }, []);
+
   useEffect(() => {
-    if (!showStats && !showResetConfirm) return;
+    if (!showStats && !showResetConfirm && !showSettings) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setShowStats(false);
         setShowResetConfirm(false);
+        if (showSettings) closeSettings();
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [showStats, showResetConfirm]);
+  }, [closeSettings, showSettings, showStats, showResetConfirm]);
 
   const changeMode = useCallback(
     (nextMode: GeneratorMode) => {
@@ -326,12 +333,12 @@ export default function App() {
         // iPhones only allow motion access from inside a tap.
         const allowed = await requestMotionPermission();
         if (!allowed) {
-          setNotice("Motion access was not allowed, so shake and tilt stay off.");
+          setNotice("Motion access was not allowed, so shake stays off.");
           return;
         }
       }
       setSettings((previous) => ({ ...previous, [key]: next }));
-      setNotice(`${key === "motion" ? "Shake and tilt" : key === "sound" ? "Sound" : key === "artwork" ? "Artwork" : "Haptics"} ${next ? "on" : "off"}.`);
+      setNotice(`${key === "motion" ? "Shake" : key === "sound" ? "Sound" : key === "artwork" ? "Artwork" : "Haptics"} ${next ? "on" : "off"}.`);
       // Turning these on is a user gesture, so give a short preview.
       if (key === "sound" && next) playLockIn(false);
       if (key === "haptics" && next && !vibrate([60, 50, 60])) {
@@ -431,18 +438,18 @@ export default function App() {
     }, GENERATION_DURATION_MS);
   }, [hapticsOn, rolling, soundOn]);
 
-  // Shake to generate, and tilt the starfield. Both stay quiet while a dialog is open.
+  // Shake to generate stays quiet while a dialog is open.
   const generateRef = useRef(generate);
   generateRef.current = generate;
   const dialogOpenRef = useRef(false);
-  dialogOpenRef.current = showStats || showResetConfirm;
+  dialogOpenRef.current = showStats || showResetConfirm || showSettings;
   const onShake = useCallback(() => {
     if (!dialogOpenRef.current) generateRef.current();
   }, []);
   const onNoMotionData = useCallback(() => {
     setNotice("No motion data is coming from this browser. In Chrome: Settings, Site settings, Motion sensors, then allow it for this site.");
   }, []);
-  useMotion(settings.motion && canMotion, cosmosEl, onShake, onNoMotionData);
+  useMotion(settings.motion && canMotion, onShake, onNoMotionData);
 
   // Messages from the settings chips fade after a few seconds.
   useEffect(() => {
@@ -453,7 +460,7 @@ export default function App() {
 
   useEffect(() => {
     const handleSpacebar = (event: KeyboardEvent) => {
-      if (event.code !== "Space" || event.repeat || showStats || showResetConfirm) return;
+      if (event.code !== "Space" || event.repeat || showStats || showResetConfirm || showSettings) return;
 
       const target = event.target as HTMLElement | null;
       if (
@@ -609,19 +616,34 @@ export default function App() {
   }, [tally, totalRolls]);
 
   return (
-    <main className="cosmos" data-theme={settings.theme} ref={setCosmosEl}>
+    <main className="cosmos" data-theme={settings.theme} data-art={settings.artwork ? "on" : "off"}>
       {settings.artwork && <ThemeBackdrop theme={settings.theme} />}
-      <div className="orb orb-one" aria-hidden="true" />
-      <div className="orb orb-two" aria-hidden="true" />
 
       <div className="app-shell">
         <header className="topbar">
-          <div className="brand-mark" aria-label={`Version ${APP_VERSION}`}>
+          <div className="brand-mark">
             <span className="brand-symbol" aria-hidden="true">
               <span />
             </span>
-            <span>Version {APP_VERSION}</span>
+            <span>Two Numbers</span>
           </div>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => setShowSettings(true)}
+            aria-label="Settings"
+            aria-haspopup="dialog"
+            aria-expanded={showSettings}
+            aria-controls="settings-sheet"
+            ref={settingsButtonRef}
+            data-testid="button-settings"
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M4 7h9M17 7h3M4 17h3M11 17h9" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <circle cx="15" cy="7" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              <circle cx="9" cy="17" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+          </button>
         </header>
 
         <section className="hero" aria-labelledby="page-title">
@@ -632,19 +654,6 @@ export default function App() {
           <p className="sr-only">Each number is between 1 and 6.</p>
 
           <div className={`number-stage ${rolling ? "is-charged" : ""} ${stageTone ? `is-${stageTone}` : ""}`}>
-            <div className="energy-field" aria-hidden="true">
-              <span className="aura-ring" />
-              <span className="energy-halo halo-one" />
-              <span className="energy-halo halo-two" />
-              <span className="sigil sigil-one" />
-              <span className="sigil sigil-two" />
-              <span className="speed-line speed-line-one" />
-              <span className="speed-line speed-line-two" />
-              <span className="speed-line speed-line-three" />
-              <span className="energy-core" />
-              {rollKey > 0 && !rolling && <span key={rollKey} className="shockwave" />}
-            </div>
-
             {pair ? (
               <>
                 <NumberNode value={pair[0]} rolling={rolling} index="a" />
@@ -693,7 +702,11 @@ export default function App() {
             )}
           </div>
 
-          <OddsCurve total={sum} rolling={rolling} />
+          <p className={`odds-line ${rolling ? "is-hidden" : ""}`} data-testid="odds-line" aria-hidden={rolling}>
+            {sum !== null
+              ? `${sum} comes up ${EXPECTED_WAYS[sum] === 1 ? "once" : `${EXPECTED_WAYS[sum]} times`} in 36 (${((EXPECTED_WAYS[sum] / 36) * 100).toFixed(1)}%)`
+              : "\u00a0"}
+          </p>
 
           <p className="sr-only" aria-live="polite" aria-atomic="true">
             {rolling
@@ -720,21 +733,17 @@ export default function App() {
               <strong>{totalRolls}</strong> {totalRolls === 1 ? "roll" : "rolls"}
             </span>
             {pair && !rolling && (
-              <button type="button" className="share-button" onClick={share} disabled={sharing} data-testid="button-share">
+              <button type="button" className="text-link share-button" onClick={share} disabled={sharing} data-testid="button-share">
                 {sharing ? "Preparing…" : "Share result"}
               </button>
             )}
           </div>
 
-          {canMotion && (
+          {canMotion && !settings.motion && (
             <div className="shake-hint" data-testid="shake-hint">
-              {settings.motion ? (
-                <span>Or shake your phone to generate</span>
-              ) : (
-                <button type="button" onClick={() => toggleSetting("motion")} data-testid="button-enable-shake">
-                  Enable shake to generate
-                </button>
-              )}
+              <button type="button" className="text-link" onClick={() => toggleSetting("motion")} data-testid="button-enable-shake">
+                Turn on shake to generate
+              </button>
             </div>
           )}
         </section>
@@ -750,7 +759,7 @@ export default function App() {
               data-testid="button-mode-balanced"
             >
               <strong>Balanced</strong>
-              <span>{POOL_SIZE} pool</span>
+              <span>Avoids long streaks</span>
             </button>
             <button
               type="button"
@@ -761,17 +770,17 @@ export default function App() {
               data-testid="button-mode-pure"
             >
               <strong>Pure random</strong>
-              <span>independent</span>
+              <span>Every roll independent</span>
             </button>
           </div>
           <p className="mode-hint">
             {mode === "balanced"
-              ? `A shuffled pool of ${POOL_SIZE} results that follows the real odds. Smooths long streaks.`
-              : "Two fresh, independent draws every time. Long streaks can and do happen."}
+              ? `Draws from a shuffled set of ${POOL_SIZE} results that follows the real odds, so long streaks are rare.`
+              : "Two fresh draws every time. Long streaks can and do happen."}
           </p>
           {mode === "balanced" && (
             <details className="pool-details">
-              <summary>See what is in the pool</summary>
+              <summary>What is in the pool</summary>
               <ul className="pool-makeup" aria-label="Pool makeup by total">
                 {SUM_VALUES.map((value) => (
                   <li key={value}>
@@ -794,7 +803,7 @@ export default function App() {
               data-testid="meter-pool"
             >
               <span>
-                Pool {shoeStatus.drawn} / {shoeStatus.cutAfter} · reshuffles at the cut
+                {shoeStatus.drawn} of {shoeStatus.cutAfter} used before the pool reshuffles
               </span>
             </div>
           )}
@@ -810,25 +819,14 @@ export default function App() {
           </section>
         )}
 
-        <SettingsRow
-          settings={settings}
-          canVibrate={vibrates}
-          canMotion={canMotion}
-          canInstall={installEvent !== null}
-          status={notice}
-          onToggle={toggleSetting}
-          onCycleTheme={cycleTheme}
-          onInstall={installApp}
-          onTestHaptics={testHaptics}
-        />
-
-        <div className="sanity-action">
+        <div className="tools" role="group" aria-label="Tools">
           <button
             type="button"
-            className="sanity-check-button"
+            className="text-link sanity-check-button"
             onClick={() => runSanity()}
             disabled={sanityRunning}
             aria-label={sanityRunning ? `Running sanity check, ${Math.round(sanityProgress * 100)} percent` : "Run sanity check"}
+            title="Tests the raw generator. Your history and pool stay unchanged."
             style={{ ["--progress" as string]: sanityProgress }}
           >
             <span className="sanity-fill" aria-hidden="true" />
@@ -836,7 +834,28 @@ export default function App() {
               {sanityRunning ? `Checking… ${Math.round(sanityProgress * 100)}%` : "Run sanity check"}
             </span>
           </button>
-          <span>Tests the raw generator. Your history and pool stay unchanged.</span>
+          {totalRolls > 0 && (
+            <>
+              <button
+                type="button"
+                className="text-link stats-toggle"
+                onClick={() => setShowStats(true)}
+                aria-expanded={showStats}
+                aria-controls="probability-modal"
+                data-testid="button-toggle-stats"
+              >
+                View probability
+              </button>
+              <button
+                type="button"
+                className="text-link reset-button"
+                onClick={() => setShowResetConfirm(true)}
+                data-testid="button-reset-history"
+              >
+                Reset history
+              </button>
+            </>
+          )}
         </div>
 
         {sanityResult && (
@@ -910,30 +929,30 @@ export default function App() {
           </aside>
         )}
 
-        {totalRolls > 0 && (
-          <>
-            <div className="history-actions">
-              <button
-                type="button"
-                className="stats-toggle"
-                onClick={() => setShowStats(true)}
-                aria-expanded={showStats}
-                aria-controls="probability-modal"
-                data-testid="button-toggle-stats"
-              >
-                View probability
-              </button>
-              <button
-                type="button"
-                className="reset-button"
-                onClick={() => setShowResetConfirm(true)}
-                data-testid="button-reset-history"
-              >
-                Reset history
-              </button>
-            </div>
-            <p className="local-history-note">History is saved on this device only.</p>
-          </>
+        <footer className="page-foot">
+          <span>Version {APP_VERSION}</span>
+          <span>History is saved on this device only.</span>
+        </footer>
+
+        {showSettings && (
+          <SettingsSheet
+            settings={settings}
+            canVibrate={vibrates}
+            canMotion={canMotion}
+            canInstall={installEvent !== null}
+            status={notice}
+            onToggle={toggleSetting}
+            onCycleTheme={cycleTheme}
+            onInstall={installApp}
+            onTestHaptics={testHaptics}
+            onClose={closeSettings}
+          />
+        )}
+
+        {!showSettings && notice && (
+          <p className="toast" role="status" aria-live="polite">
+            {notice}
+          </p>
         )}
 
         {showStats && totalRolls > 0 && (
